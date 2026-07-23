@@ -1,0 +1,4 @@
+import { useCallback,useEffect,useState } from "react";
+import { createInventoryItem,listInventory,updateInventoryItem } from "./inventoryService";
+import type { InventoryItem,InventoryItemInput } from "./inventoryTypes";
+export function useInventory(){const [items,setItems]=useState<InventoryItem[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState(""); const refresh=useCallback(async()=>{setLoading(true);setError("");try{setItems(await listInventory())}catch(e){setError(e instanceof Error?e.message:"Unable to load inventory.")}finally{setLoading(false)}},[]);useEffect(()=>{void refresh()},[refresh]);async function save(input:InventoryItemInput,id?:string){const item=id?await updateInventoryItem(id,input):await createInventoryItem(input);setItems(c=>(id?c.map(x=>x.id===id?item:x):[...c,item]).sort((a,b)=>a.name.localeCompare(b.name)));return item}return{items,loading,error,refresh,save}}
