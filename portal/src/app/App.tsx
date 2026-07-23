@@ -21,6 +21,7 @@ import { AiReceptionistPage } from "../features/aiReceptionist/AiReceptionistPag
 import { SmsIntegrationPage } from "../features/sms/SmsIntegrationPage";
 import { MobileStaffPage } from "../features/mobileStaff/MobileStaffPage";
 import { PetTimelinePage } from "../features/petTimeline/PetTimelinePage";
+import { AiSchedulingPage } from "../features/aiScheduling/AiSchedulingPage";
 export default function App() {
   return <Routes>
     <Route path="/login" element={<LoginPage/>}/>
@@ -45,6 +46,7 @@ export default function App() {
       <Route path="sms-integration" element={<SmsIntegrationPage/>}/>
       <Route path="staff-mobile" element={<MobileStaffPage/>}/>
       <Route path="pet-timeline" element={<PetTimelinePage/>}/>
+      <Route path="ai-scheduling" element={<AiSchedulingPage/>}/>
     </Route></Route>
     <Route path="*" element={<Navigate to="/" replace/>}/>
   </Routes>;
