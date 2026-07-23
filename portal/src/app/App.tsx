@@ -18,6 +18,9 @@ import { ReportsPage } from "../features/reports/ReportsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { ClientPortalPage } from "../features/clientPortal/ClientPortalPage";
 import { AiReceptionistPage } from "../features/aiReceptionist/AiReceptionistPage";
+import { SmsIntegrationPage } from "../features/sms/SmsIntegrationPage";
+import { MobileStaffPage } from "../features/mobileStaff/MobileStaffPage";
+import { PetTimelinePage } from "../features/petTimeline/PetTimelinePage";
 export default function App() {
   return <Routes>
     <Route path="/login" element={<LoginPage/>}/>
@@ -39,6 +42,9 @@ export default function App() {
       <Route path="settings" element={<SettingsPage/>}/>
       <Route path="client-portal" element={<ClientPortalPage/>}/>
       <Route path="ai-receptionist" element={<AiReceptionistPage/>}/>
+      <Route path="sms-integration" element={<SmsIntegrationPage/>}/>
+      <Route path="staff-mobile" element={<MobileStaffPage/>}/>
+      <Route path="pet-timeline" element={<PetTimelinePage/>}/>
     </Route></Route>
     <Route path="*" element={<Navigate to="/" replace/>}/>
   </Routes>;
