@@ -1,4 +1,4 @@
-import { BarChart3, Bot, CalendarDays, CalendarRange, CreditCard, Home, Hotel, MessageSquare, Package, PawPrint, Scissors, Settings, ShieldCheck, Smartphone, Users, X, Radio, TabletSmartphone, CalendarSearch } from "lucide-react";
+import { BarChart3, Bot, CalendarDays, CalendarRange, CreditCard, Home, Hotel, MessageSquare, Package, PawPrint, Scissors, Settings, ShieldCheck, Smartphone, Users, X, Radio, TabletSmartphone, CalendarSearch, Crown, BellRing, FileSignature } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const items = [
@@ -6,7 +6,7 @@ const items = [
   ["/grooming","Grooming",Scissors],["/boarding","Boarding",Hotel],["/pets","Pets",PawPrint],
   ["/customers","Customers",Users],["/messages","Messages",MessageSquare],["/payments","Payments",CreditCard],
   ["/employees","Employees",ShieldCheck],["/inventory","Inventory",Package],["/reports","Reports",BarChart3],
-  ["/settings","Settings",Settings],["/ai-scheduling","AI Scheduling",CalendarSearch],["/staff-mobile","Staff Mobile",TabletSmartphone],["/sms-integration","Two-Way SMS",Radio],["/client-portal","Client Portal",Smartphone],["/ai-receptionist","AI Receptionist",Bot]
+  ["/memberships","Memberships",Crown],["/reminders","Reminders",BellRing],["/forms","Client Forms",FileSignature],["/settings","Settings",Settings],["/ai-scheduling","AI Scheduling",CalendarSearch],["/staff-mobile","Staff Mobile",TabletSmartphone],["/sms-integration","Two-Way SMS",Radio],["/client-portal","Client Portal",Smartphone],["/ai-receptionist","AI Receptionist",Bot]
 ] as const;
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {

@@ -22,6 +22,9 @@ import { SmsIntegrationPage } from "../features/sms/SmsIntegrationPage";
 import { MobileStaffPage } from "../features/mobileStaff/MobileStaffPage";
 import { PetTimelinePage } from "../features/petTimeline/PetTimelinePage";
 import { AiSchedulingPage } from "../features/aiScheduling/AiSchedulingPage";
+import { MembershipsPage } from "../features/memberships/MembershipsPage";
+import { RemindersPage } from "../features/reminders/RemindersPage";
+import { ClientFormsPage } from "../features/forms/ClientFormsPage";
 export default function App() {
   return <Routes>
     <Route path="/login" element={<LoginPage/>}/>
@@ -47,6 +50,9 @@ export default function App() {
       <Route path="staff-mobile" element={<MobileStaffPage/>}/>
       <Route path="pet-timeline" element={<PetTimelinePage/>}/>
       <Route path="ai-scheduling" element={<AiSchedulingPage/>}/>
+      <Route path="memberships" element={<MembershipsPage/>}/>
+      <Route path="reminders" element={<RemindersPage/>}/>
+      <Route path="forms" element={<ClientFormsPage/>}/>
     </Route></Route>
     <Route path="*" element={<Navigate to="/" replace/>}/>
   </Routes>;
