@@ -25,6 +25,8 @@ import { AiSchedulingPage } from "../features/aiScheduling/AiSchedulingPage";
 import { MembershipsPage } from "../features/memberships/MembershipsPage";
 import { RemindersPage } from "../features/reminders/RemindersPage";
 import { ClientFormsPage } from "../features/forms/ClientFormsPage";
+import { KennelMapPage } from "../features/kennels/KennelMapPage";
+import { CrmMarketingPage } from "../features/crm/CrmMarketingPage";
 export default function App() {
   return <Routes>
     <Route path="/login" element={<LoginPage/>}/>
@@ -53,6 +55,8 @@ export default function App() {
       <Route path="memberships" element={<MembershipsPage/>}/>
       <Route path="reminders" element={<RemindersPage/>}/>
       <Route path="forms" element={<ClientFormsPage/>}/>
+      <Route path="kennel-map" element={<KennelMapPage/>}/>
+      <Route path="crm-marketing" element={<CrmMarketingPage/>}/>
     </Route></Route>
     <Route path="*" element={<Navigate to="/" replace/>}/>
   </Routes>;
