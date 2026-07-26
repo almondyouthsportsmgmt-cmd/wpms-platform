@@ -1,175 +1,228 @@
 import { useMemo } from "react";
+import type { ScheduleEvent } from "../../scheduling/schedulingTypes";
+import type { CalendarMoveResult } from "../calendarMoveTypes";
+import type { CalendarViewSettings } from "../calendarViewSettings";
+import CalendarDropZone from "./CalendarDropZone";
+import CalendarEventCard from "./CalendarEventCard";
+import { positionOverlappingEvents } from "./calendarOverlap";
 
-import type {
-  ScheduleEvent,
-} from "../../scheduling/schedulingTypes";
-
-import {
-  getEventColor,
-  getStatusOpacity,
-} from "../calendarEventColors";
-
-import CalendarDropZone from "../CalendarDropZone";
-import DraggableCalendarEvent from "./DraggableCalendarEvent";
-
-import "../calendar.css";
-
-interface WeekCalendarProps {
+type Props = {
   weekStart: Date;
   events: ScheduleEvent[];
+  settings: CalendarViewSettings;
   onEventClick?: (event: ScheduleEvent) => void;
   onMove: (
     event: ScheduleEvent,
     start: Date,
     end: Date,
-  ) => Promise<{
-    success: boolean;
-    conflicts?: Array<{ reason: string }>;
-  }>;
-  onMoveComplete?: (message: string) => void;
+    resourceId?: string,
+  ) => Promise<CalendarMoveResult>;
   onMoveError?: (message: string) => void;
+};
+
+const SLOT_HEIGHT = 22;
+
+function weekDays(value: Date) {
+  const start = new Date(value);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - start.getDay());
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = new Date(start);
+    day.setDate(start.getDate() + index);
+    return day;
+  });
 }
 
-const HOURS = Array.from(
-  { length: 12 },
-  (_, index) => index + 8,
-);
+function touchesDay(event: ScheduleEvent, day: Date) {
+  const start = new Date(day);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
 
-function beginningOfWeek(date: Date) {
-  const result = new Date(date);
-  result.setHours(0, 0, 0, 0);
-  result.setDate(result.getDate() - result.getDay());
-  return result;
-}
-
-function isSameDay(left: Date, right: Date) {
-  return (
-    left.getFullYear() === right.getFullYear() &&
-    left.getMonth() === right.getMonth() &&
-    left.getDate() === right.getDate()
-  );
-}
-
-function formatHour(hour: number) {
-  if (hour === 12) return "12:00 PM";
-  if (hour > 12) return `${hour - 12}:00 PM`;
-  return `${hour}:00 AM`;
+  return new Date(event.start) < end &&
+    new Date(event.end) > start;
 }
 
 export default function WeekCalendar({
   weekStart,
   events,
+  settings,
   onEventClick,
   onMove,
-  onMoveComplete,
   onMoveError,
-}: WeekCalendarProps) {
-  const week = useMemo(() => {
-    const start = beginningOfWeek(weekStart);
+}: Props) {
+  const days = useMemo(
+    () => weekDays(weekStart),
+    [weekStart],
+  );
 
-    return Array.from({ length: 7 }, (_, index) => {
-      const day = new Date(start);
-      day.setDate(start.getDate() + index);
-      return day;
-    });
-  }, [weekStart]);
+  const startHour = settings.showClosedHours
+    ? 0
+    : settings.openingHour;
+  const endHour = settings.showClosedHours
+    ? 24
+    : settings.closingHour;
+  const slotMinutes = settings.slotMinutes;
+  const slotCount =
+    ((endHour - startHour) * 60) / slotMinutes;
+  const slotMilliseconds = slotMinutes * 60_000;
+
+  function clamp(value: number) {
+    return Math.max(0, Math.min(slotCount, value));
+  }
 
   return (
-    <div className="week-calendar">
-      <div className="week-header">
-        <div className="week-time-column" />
-
-        {week.map((day) => (
-          <div
-            key={day.toISOString()}
-            className="week-day-header"
-          >
-            <strong>
-              {day.toLocaleDateString([], {
-                weekday: "short",
-              })}
-            </strong>
-            <div>
-              {day.getMonth() + 1}/{day.getDate()}
-            </div>
+    <div className="calendar-time-view">
+      <div
+        className="calendar-time-header"
+        style={{
+          gridTemplateColumns:
+            "72px repeat(7, minmax(175px, 1fr))",
+        }}
+      >
+        <div />
+        {days.map((day) => (
+          <div key={day.toISOString()}>
+            {day.toLocaleDateString([], {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            })}
           </div>
         ))}
       </div>
 
-      {HOURS.map((hour) => (
-        <div className="week-row" key={hour}>
-          <div className="week-hour">
-            {formatHour(hour)}
+      <div
+        className="calendar-time-grid"
+        style={{
+          gridTemplateColumns:
+            "72px repeat(7, minmax(175px, 1fr))",
+          gridTemplateRows: `repeat(${slotCount}, ${SLOT_HEIGHT}px)`,
+          ["--calendar-slot-height" as string]: `${SLOT_HEIGHT}px`,
+        }}
+      >
+        {Array.from(
+          { length: endHour - startHour + 1 },
+          (_, index) => startHour + index,
+        ).map((hour) => (
+          <div
+            key={hour}
+            className="calendar-time-label"
+            style={{
+              gridColumn: 1,
+              gridRow:
+                ((hour - startHour) * 60) /
+                  slotMinutes +
+                1,
+            }}
+          >
+            {new Date(2000, 0, 1, hour % 24).toLocaleTimeString(
+              [],
+              { hour: "numeric" },
+            )}
           </div>
+        ))}
 
-          {week.map((day) => {
-            const slotEvents = events.filter((event) => {
-              const start = new Date(event.start);
+        {days.flatMap((day, dayIndex) => {
+          const displayedDayStart = new Date(day);
+          displayedDayStart.setHours(startHour, 0, 0, 0);
+
+          return Array.from(
+            { length: slotCount },
+            (_, slot) => {
+              const start = new Date(
+                displayedDayStart.getTime() +
+                  slot * slotMilliseconds,
+              );
 
               return (
-                isSameDay(start, day) &&
-                start.getHours() === hour
+                <CalendarDropZone
+                  key={`${day.toISOString()}-${slot}`}
+                  start={start}
+                  onMove={onMove}
+                  onMoveError={onMoveError}
+                  style={{
+                    gridColumn: dayIndex + 2,
+                    gridRow: slot + 1,
+                  }}
+                />
               );
-            });
+            },
+          );
+        })}
 
-            return (
-              <CalendarDropZone
-                key={`${day.toISOString()}-${hour}`}
-                date={day}
-                hour={hour}
-                className="week-cell"
-                onMove={onMove}
-                onMoveComplete={onMoveComplete}
-                onMoveError={onMoveError}
-              >
-                {slotEvents.map((event) => {
-                  const color = getEventColor(event.type);
+        {days.flatMap((day, dayIndex) => {
+          const displayedDayStart = new Date(day);
+          displayedDayStart.setHours(startHour, 0, 0, 0);
 
-                  return (
-                    <DraggableCalendarEvent
-                      key={event.id}
-                      event={event}
-                    >
-                      <button
-                        type="button"
-                        className="week-event"
-                        style={{
-                          background: color.background,
-                          color: color.text,
-                          borderLeft: `4px solid ${color.border}`,
-                          opacity: getStatusOpacity(
-                            event.status,
-                          ),
-                        }}
-                        onClick={() =>
-                          onEventClick?.(event)
-                        }
-                      >
-                        <strong>{event.title}</strong>
-                        <small>
-                          {new Date(
-                            event.start,
-                          ).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          {" - "}
-                          {new Date(
-                            event.end,
-                          ).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </small>
-                      </button>
-                    </DraggableCalendarEvent>
-                  );
-                })}
-              </CalendarDropZone>
-            );
-          })}
-        </div>
-      ))}
+          const displayedDayEnd = new Date(day);
+          if (endHour === 24) {
+            displayedDayEnd.setHours(24, 0, 0, 0);
+          } else {
+            displayedDayEnd.setHours(endHour, 0, 0, 0);
+          }
+
+          const dayEvents = events.filter((event) =>
+            touchesDay(event, day),
+          );
+
+          return positionOverlappingEvents(dayEvents).map(
+            ({ event, column, columnCount }) => {
+              const visibleStart = new Date(
+                Math.max(
+                  new Date(event.start).getTime(),
+                  displayedDayStart.getTime(),
+                ),
+              );
+
+              const visibleEnd = new Date(
+                Math.min(
+                  new Date(event.end).getTime(),
+                  displayedDayEnd.getTime(),
+                ),
+              );
+
+              const startSlot = clamp(
+                Math.floor(
+                  (visibleStart.getTime() -
+                    displayedDayStart.getTime()) /
+                    slotMilliseconds,
+                ),
+              );
+
+              const endSlot = Math.max(
+                startSlot + 1,
+                clamp(
+                  Math.ceil(
+                    (visibleEnd.getTime() -
+                      displayedDayStart.getTime()) /
+                      slotMilliseconds,
+                  ),
+                ),
+              );
+
+              const width = 100 / columnCount;
+              const left = width * column;
+
+              return (
+                <CalendarEventCard
+                  key={`${event.id}-${day.toISOString()}`}
+                  event={event}
+                  onClick={onEventClick}
+                  className="calendar-time-event-positioned"
+                  style={{
+                    gridColumn: dayIndex + 2,
+                    gridRow: `${startSlot + 1} / ${endSlot + 1}`,
+                    width: `calc(${width}% - 6px)`,
+                    marginLeft: `calc(${left}% + 3px)`,
+                  }}
+                />
+              );
+            },
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -1,0 +1,284 @@
+.grooming-services-page {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.grooming-services-toolbar {
+  align-items: flex-end;
+}
+
+.grooming-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.grooming-services-directory {
+  overflow: hidden;
+  padding: 0;
+}
+
+.grooming-services-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.grooming-services-search svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.grooming-services-search input {
+  flex: 1;
+  min-width: 220px;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface, #161a18);
+  color: inherit;
+  outline: none;
+}
+
+.grooming-services-search input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(122, 190, 44, 0.16);
+}
+
+.grooming-service-group + .grooming-service-group {
+  border-top: 1px solid var(--line);
+}
+
+.grooming-service-group-header {
+  padding: 0;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.grooming-service-group-header > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 0 18px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.grooming-service-group-header > button:hover {
+  background: rgba(122, 190, 44, 0.08);
+}
+
+.grooming-service-group-header strong {
+  font-size: 1rem;
+}
+
+.grooming-service-group-header span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(122, 190, 44, 0.14);
+  color: var(--brand);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.grooming-service-list {
+  display: grid;
+}
+
+.grooming-service-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px auto;
+  gap: 22px;
+  align-items: center;
+  padding: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.grooming-service-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.grooming-service-copy {
+  min-width: 0;
+}
+
+.grooming-service-title-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.grooming-service-title-line strong {
+  font-size: 1rem;
+  color: #35d6c3;
+}
+
+.service-inactive {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.14);
+  color: #ef4444;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.grooming-service-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.grooming-service-meta span {
+  position: relative;
+}
+
+.grooming-service-meta span:not(:last-child)::after {
+  content: "•";
+  margin-left: 14px;
+  color: var(--line);
+}
+
+.grooming-service-meta b {
+  color: var(--muted);
+}
+
+.grooming-service-meta b.is-enabled {
+  color: #36d67a;
+}
+
+.grooming-service-copy p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.grooming-service-price {
+  text-align: right;
+}
+
+.grooming-service-price strong,
+.grooming-service-price span {
+  display: block;
+}
+
+.grooming-service-price strong {
+  font-size: 1.08rem;
+}
+
+.grooming-service-price span {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.grooming-service-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.grooming-service-actions .icon-button {
+  width: 38px;
+  height: 38px;
+}
+
+.grooming-service-actions .icon-button:first-child {
+  color: #ef4444;
+}
+
+.grooming-service-actions .icon-button:nth-child(2) {
+  color: #38bdf8;
+}
+
+.grooming-service-actions .icon-button:last-child {
+  color: #34d399;
+}
+
+.bulk-price-modal {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.bulk-price-content {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+@media (max-width: 900px) {
+  .grooming-service-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .grooming-service-price {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .grooming-service-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .grooming-services-toolbar {
+    align-items: stretch;
+  }
+
+  .grooming-toolbar-actions {
+    width: 100%;
+  }
+
+  .grooming-toolbar-actions > * {
+    flex: 1;
+  }
+
+  .grooming-services-search {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .grooming-services-search input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .grooming-service-row {
+    grid-template-columns: 1fr;
+  }
+
+  .grooming-service-price {
+    grid-column: 1;
+    grid-row: auto;
+    text-align: left;
+  }
+
+  .grooming-service-actions {
+    grid-column: 1;
+    justify-content: flex-start;
+  }
+
+  .grooming-service-meta span:not(:last-child)::after {
+    display: none;
+  }
+}

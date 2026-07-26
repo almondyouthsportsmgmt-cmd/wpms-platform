@@ -1,364 +1,179 @@
-import { X, Calendar, Clock, User, PawPrint, ClipboardList, AlertTriangle, Home, DollarSign, Edit3, CheckCircle2 } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  ExternalLink,
+  Home,
+  PawPrint,
+  UserRound,
+  X,
+} from "lucide-react";
+import type { ScheduleEvent } from "../../scheduling/schedulingTypes";
 
-import type {
-  ScheduleEvent,
-} from "../../scheduling/schedulingTypes";
-
-import "../calendar.css";
-
-interface EventDetailsDrawerProps {
+type Props = {
   open: boolean;
-
   event: ScheduleEvent | null;
-
-  customerName?: string;
-
-  petNames?: string[];
-
-  groomerName?: string;
-
-  kennelName?: string;
-
-  vaccinationStatus?: string;
-
-  medicalAlerts?: string[];
-
-  invoiceStatus?: string;
-
   onClose: () => void;
+  onOpenRecord?: (event: ScheduleEvent) => void;
+};
 
-  onEdit?: (event: ScheduleEvent) => void;
+function eventLabel(event: ScheduleEvent) {
+  if (event.type === "grooming") {
+    return "Grooming appointment";
+  }
 
-  onCheckIn?: (event: ScheduleEvent) => void;
+  if (
+    event.type === "boarding" ||
+    event.type === "boarding-checkin" ||
+    event.type === "boarding-checkout"
+  ) {
+    return "Boarding stay";
+  }
 
-  onCheckOut?: (event: ScheduleEvent) => void;
+  return event.type.replaceAll("-", " ");
+}
 
-  onComplete?: (event: ScheduleEvent) => void;
-
-  onFutureAppointment?: (
-    event: ScheduleEvent,
-  ) => void;
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export default function EventDetailsDrawer({
   open,
-
   event,
-
-  customerName,
-
-  petNames = [],
-
-  groomerName,
-
-  kennelName,
-
-  vaccinationStatus = "Current",
-
-  medicalAlerts = [],
-
-  invoiceStatus = "Pending",
-
   onClose,
-
-  onEdit,
-
-  onCheckIn,
-
-  onCheckOut,
-
-  onComplete,
-
-  onFutureAppointment,
-}: EventDetailsDrawerProps) {
+  onOpenRecord,
+}: Props) {
   if (!open || !event) {
     return null;
   }
 
+  const isBoarding =
+    event.type === "boarding" ||
+    event.type === "boarding-checkin" ||
+    event.type === "boarding-checkout";
+
+  const resourceName =
+    event.resourceIds
+      .map((resourceId) =>
+        resourceId.replace(/^kennel:/, ""),
+      )
+      .find((name) => name && name !== "unassigned") ||
+    (isBoarding ? "Boarding" : "Unassigned");
+
   return (
-    <aside className="calendar-event-drawer">
+    <div className="calendar-tooltip-layer">
+      <button
+        type="button"
+        className="calendar-tooltip-backdrop"
+        onClick={onClose}
+        aria-label="Close calendar event details"
+      />
 
-      <div className="drawer-header">
-
-        <div>
-
-          <span className="eyebrow">
-            Schedule Event
-          </span>
-
-          <h2>{event.title}</h2>
-
-        </div>
-
-        <button
-          className="icon-button"
-          type="button"
-          onClick={onClose}
-        >
-          <X size={18} />
-        </button>
-
-      </div>
-
-      <div className="drawer-body">
-
-        <section className="drawer-section">
-
-          <h3>
-            Appointment
-          </h3>
-
-          <div className="drawer-row">
-
-            <Calendar size={16} />
-
-            <span>
-              {new Date(
-                event.start,
-              ).toLocaleDateString()}
+      <section
+        className="calendar-tooltip-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="calendar-tooltip-title"
+      >
+        <header className="calendar-tooltip-header">
+          <div>
+            <span className="eyebrow">
+              {eventLabel(event)}
             </span>
-
+            <h2 id="calendar-tooltip-title">
+              {event.title}
+            </h2>
           </div>
 
-          <div className="drawer-row">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onClose}
+            aria-label="Close event details"
+          >
+            <X size={18} />
+          </button>
+        </header>
 
-            <Clock size={16} />
-
-            <span>
-
-              {new Date(
-                event.start,
-              ).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-
-              {" - "}
-
-              {new Date(
-                event.end,
-              ).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-
-            </span>
-
-          </div>
-
-        </section>
-
-        <section className="drawer-section">
-
-          <h3>
-            Customer
-          </h3>
-
-          <div className="drawer-row">
-
-            <User size={16} />
-
-            <span>
-              {customerName ??
-                "Unknown"}
-            </span>
-
-          </div>
-
-        </section>
-
-        <section className="drawer-section">
-
-          <h3>
-            Pet
-          </h3>
-
-          {petNames.map((pet) => (
-            <div
-              key={pet}
-              className="drawer-row"
-            >
-              <PawPrint size={16} />
-
-              <span>{pet}</span>
-
+        <div className="calendar-tooltip-body">
+          <div className="calendar-tooltip-detail">
+            <Calendar size={17} />
+            <div>
+              <span>Starts</span>
+              <strong>{formatDateTime(event.start)}</strong>
             </div>
-          ))}
-
-        </section>
-
-        <section className="drawer-section">
-
-          <h3>
-            Staff
-          </h3>
-
-          <div className="drawer-row">
-
-            <ClipboardList
-              size={16}
-            />
-
-            <span>
-              {groomerName ??
-                "Unassigned"}
-            </span>
-
           </div>
 
-        </section>
+          <div className="calendar-tooltip-detail">
+            <Clock size={17} />
+            <div>
+              <span>Ends</span>
+              <strong>{formatDateTime(event.end)}</strong>
+            </div>
+          </div>
 
-        {kennelName && (
-          <section className="drawer-section">
-
-            <h3>
-              Boarding
-            </h3>
-
-            <div className="drawer-row">
-
-              <Home size={16} />
-
+          <div className="calendar-tooltip-detail">
+            {isBoarding ? (
+              <Home size={17} />
+            ) : (
+              <UserRound size={17} />
+            )}
+            <div>
               <span>
-                {kennelName}
+                {isBoarding ? "Boarding resource" : "Assigned staff"}
               </span>
-
+              <strong>{resourceName}</strong>
             </div>
-
-          </section>
-        )}
-
-        <section className="drawer-section">
-
-          <h3>
-            Medical
-          </h3>
-
-          <div className="drawer-row">
-
-            <CheckCircle2
-              size={16}
-            />
-
-            <span>
-
-              Vaccinations:
-
-              {" "}
-
-              {vaccinationStatus}
-
-            </span>
-
           </div>
 
-          {medicalAlerts.length >
-            0 && (
-            <div className="drawer-alerts">
+          <div className="calendar-tooltip-detail">
+            <PawPrint size={17} />
+            <div>
+              <span>Pets</span>
+              <strong>{event.petIds.length}</strong>
+            </div>
+          </div>
 
-              {medicalAlerts.map(
-                (alert) => (
-                  <div
-                    key={alert}
-                    className="drawer-alert"
-                  >
-                    <AlertTriangle
-                      size={15}
-                    />
+          <div className="calendar-tooltip-status">
+            <span>Status</span>
+            <strong>
+              {event.status.replaceAll("-", " ")}
+            </strong>
+          </div>
 
-                    {alert}
-
-                  </div>
-                ),
-              )}
-
+          {event.notes && (
+            <div className="calendar-tooltip-notes">
+              <span>Notes</span>
+              <p>{event.notes}</p>
             </div>
           )}
+        </div>
 
-        </section>
+        <footer className="calendar-tooltip-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={onClose}
+          >
+            Close
+          </button>
 
-        <section className="drawer-section">
-
-          <h3>
-            Invoice
-          </h3>
-
-          <div className="drawer-row">
-
-            <DollarSign
-              size={16}
-            />
-
-            <span>
-              {invoiceStatus}
-            </span>
-
-          </div>
-
-        </section>
-
-      </div>
-
-      <div className="drawer-footer">
-
-        <button
-          type="button"
-          onClick={() =>
-            onEdit?.(event)
-          }
-        >
-          <Edit3 size={16} />
-
-          Edit
-
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            onCheckIn?.(
-              event,
-            )
-          }
-        >
-          Check In
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            onCheckOut?.(
-              event,
-            )
-          }
-        >
-          Check Out
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            onComplete?.(
-              event,
-            )
-          }
-        >
-          Complete
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            onFutureAppointment?.(
-              event,
-            )
-          }
-        >
-          Book Future
-        </button>
-
-      </div>
-
-    </aside>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => onOpenRecord?.(event)}
+          >
+            <ExternalLink size={16} />
+            Open record
+          </button>
+        </footer>
+      </section>
+    </div>
   );
 }

@@ -1,212 +1,103 @@
 import { useMemo } from "react";
+import type { ScheduleEvent } from "../../scheduling/schedulingTypes";
+import type { CalendarMoveResult } from "../calendarMoveTypes";
+import CalendarDropZone from "./CalendarDropZone";
+import CalendarEventCard from "./CalendarEventCard";
 
-import type {
-  ScheduleEvent,
-} from "../../scheduling/schedulingTypes";
-
-import {
-  getEventColor,
-  getStatusOpacity,
-} from "../calendarEventColors";
-
-import "../calendar.css";
-
-interface MonthCalendarProps {
+type Props = {
   month: Date;
   events: ScheduleEvent[];
-  onEventClick?: (
+  onEventClick?: (event: ScheduleEvent) => void;
+  onMove: (
     event: ScheduleEvent,
-  ) => void;
-}
+    start: Date,
+    end: Date,
+    resourceId?: string,
+  ) => Promise<CalendarMoveResult>;
+  onMoveError?: (message: string) => void;
+};
 
-interface CalendarDay {
-  date: Date;
-  inCurrentMonth: boolean;
-  events: ScheduleEvent[];
-}
+function touchesDay(event: ScheduleEvent, day: Date) {
+  const start = new Date(day);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
 
-function sameDay(
-  left: Date,
-  right: Date,
-) {
-  return (
-    left.getFullYear() ===
-      right.getFullYear() &&
-    left.getMonth() ===
-      right.getMonth() &&
-    left.getDate() ===
-      right.getDate()
-  );
+  return new Date(event.start) < end &&
+    new Date(event.end) > start;
 }
 
 export default function MonthCalendar({
   month,
   events,
   onEventClick,
-}: MonthCalendarProps) {
-  const days = useMemo<
-    CalendarDay[]
-  >(() => {
+  onMove,
+  onMoveError,
+}: Props) {
+  const days = useMemo(() => {
     const first = new Date(
       month.getFullYear(),
       month.getMonth(),
       1,
     );
-
-    const last = new Date(
-      month.getFullYear(),
-      month.getMonth() + 1,
-      0,
-    );
-
     const start = new Date(first);
+    start.setDate(first.getDate() - first.getDay());
 
-    start.setDate(
-      first.getDate() - first.getDay(),
-    );
-
-    const finish = new Date(last);
-
-    finish.setDate(
-      last.getDate() +
-        (6 - last.getDay()),
-    );
-
-    const result: CalendarDay[] = [];
-
-    const cursor =
-      new Date(start);
-
-    while (cursor <= finish) {
-      result.push({
-        date: new Date(cursor),
-
-        inCurrentMonth:
-          cursor.getMonth() ===
-          month.getMonth(),
-
-        events: events.filter(
-          (event) =>
-            sameDay(
-              new Date(
-                event.start,
-              ),
-              cursor,
-            ),
-        ),
-      });
-
-      cursor.setDate(
-        cursor.getDate() + 1,
-      );
-    }
-
-    return result;
-  }, [month, events]);
+    return Array.from({ length: 42 }, (_, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      return date;
+    });
+  }, [month]);
 
   return (
-    <div className="calendar-month">
-
-      <div className="calendar-weekdays">
-
-        {[
-          "Sun",
-          "Mon",
-          "Tue",
-          "Wed",
-          "Thu",
-          "Fri",
-          "Sat",
-        ].map((day) => (
-          <div
-            key={day}
-            className="calendar-weekday"
-          >
-            {day}
-          </div>
-        ))}
-
+    <div className="calendar-month-v3">
+      <div className="calendar-month-weekdays">
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+          (day) => <div key={day}>{day}</div>,
+        )}
       </div>
 
-      <div className="calendar-month-grid">
+      <div className="calendar-month-grid-v3">
+        {days.map((day) => {
+          const start = new Date(day);
+          start.setHours(9, 0, 0, 0);
+          const dayEvents = events.filter((event) =>
+            touchesDay(event, day),
+          );
 
-        {days.map((day) => (
-          <div
-            key={day.date.toISOString()}
-            className={`calendar-day ${
-              day.inCurrentMonth
-                ? ""
-                : "calendar-day-muted"
-            }`}
-          >
-            <div className="calendar-day-number">
-              {day.date.getDate()}
-            </div>
+          return (
+            <CalendarDropZone
+              key={day.toISOString()}
+              start={start}
+              onMove={onMove}
+              onMoveError={onMoveError}
+              className={`calendar-month-day-v3 ${
+                day.getMonth() === month.getMonth()
+                  ? ""
+                  : "is-outside"
+              }`}
+            >
+              <header>{day.getDate()}</header>
 
-            <div className="calendar-day-events">
+              <div className="calendar-month-events-v3">
+                {dayEvents.slice(0, 5).map((event) => (
+                  <CalendarEventCard
+                    key={`${event.id}-${day.toISOString()}`}
+                    event={event}
+                    compact
+                    onClick={onEventClick}
+                  />
+                ))}
 
-              {day.events.map(
-                (event) => {
-                  const color =
-                    getEventColor(
-                      event.type,
-                    );
-
-                  return (
-                    <button
-                      key={event.id}
-                      type="button"
-                      className="calendar-event-chip"
-                      style={{
-                        background:
-                          color.background,
-
-                        borderLeft:
-                          `5px solid ${color.border}`,
-
-                        color:
-                          color.text,
-
-                        opacity:
-                          getStatusOpacity(
-                            event.status,
-                          ),
-                      }}
-                      onClick={() =>
-                        onEventClick?.(
-                          event,
-                        )
-                      }
-                    >
-                      <strong>
-                        {new Date(
-                          event.start,
-                        ).toLocaleTimeString(
-                          [],
-                          {
-                            hour:
-                              "2-digit",
-                            minute:
-                              "2-digit",
-                          },
-                        )}
-                      </strong>
-
-                      <span>
-                        {event.title}
-                      </span>
-                    </button>
-                  );
-                },
-              )}
-
-            </div>
-
-          </div>
-        ))}
-
+                {dayEvents.length > 5 && (
+                  <span>+{dayEvents.length - 5} more</span>
+                )}
+              </div>
+            </CalendarDropZone>
+          );
+        })}
       </div>
-
     </div>
   );
 }

@@ -17,6 +17,7 @@ import type {
   GroomingServiceCategory,
 } from "./groomingServiceTypes";
 import { useGroomingServices } from "./useGroomingServices";
+import "./grooming.css";
 
 function durationLabel(minutes: number) {
   const hours = Math.floor(minutes / 60);

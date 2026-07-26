@@ -1,176 +1,219 @@
 import { useMemo } from "react";
+import type { ScheduleEvent } from "../../scheduling/schedulingTypes";
+import type { CalendarMoveResult } from "../calendarMoveTypes";
+import type { CalendarViewSettings } from "../calendarViewSettings";
+import CalendarDropZone from "./CalendarDropZone";
+import CalendarEventCard from "./CalendarEventCard";
+import { positionOverlappingEvents } from "./calendarOverlap";
 
-import type {
-  ScheduleEvent,
-} from "../../scheduling/schedulingTypes";
+type Resource = { id: string; name: string };
 
-import {
-  getEventColor,
-  getStatusOpacity,
-} from "../calendarEventColors";
-
-import CalendarDropZone from "../CalendarDropZone";
-import DraggableCalendarEvent from "./DraggableCalendarEvent";
-
-import "../calendar.css";
-
-interface GroomerResource {
-  id: string;
-  name: string;
-}
-
-interface DayCalendarProps {
+type Props = {
   date: Date;
   events: ScheduleEvent[];
-  groomers: GroomerResource[];
+  resources: Resource[];
+  settings: CalendarViewSettings;
   onEventClick?: (event: ScheduleEvent) => void;
   onMove: (
     event: ScheduleEvent,
     start: Date,
     end: Date,
-  ) => Promise<{
-    success: boolean;
-    conflicts?: Array<{ reason: string }>;
-  }>;
-  onMoveComplete?: (message: string) => void;
+    resourceId?: string,
+  ) => Promise<CalendarMoveResult>;
   onMoveError?: (message: string) => void;
-}
+};
 
-const HOURS = Array.from(
-  { length: 12 },
-  (_, index) => index + 8,
-);
+const SLOT_HEIGHT = 24;
 
-function isSameDay(left: Date, right: Date) {
-  return (
-    left.getFullYear() === right.getFullYear() &&
-    left.getMonth() === right.getMonth() &&
-    left.getDate() === right.getDate()
-  );
-}
-
-function formatHour(hour: number) {
-  if (hour === 12) return "12:00 PM";
-  if (hour > 12) return `${hour - 12}:00 PM`;
-  return `${hour}:00 AM`;
+function sameDay(left: Date, right: Date) {
+  return left.toDateString() === right.toDateString();
 }
 
 export default function DayCalendar({
   date,
   events,
-  groomers,
+  resources,
+  settings,
   onEventClick,
   onMove,
-  onMoveComplete,
   onMoveError,
-}: DayCalendarProps) {
+}: Props) {
+  const startHour = settings.showClosedHours
+    ? 0
+    : settings.openingHour;
+  const endHour = settings.showClosedHours
+    ? 24
+    : settings.closingHour;
+  const slotMinutes = settings.slotMinutes;
+  const slotCount =
+    ((endHour - startHour) * 60) / slotMinutes;
+  const slotMilliseconds = slotMinutes * 60_000;
+
+  const displayedDayStart = useMemo(() => {
+    const value = new Date(date);
+    value.setHours(startHour, 0, 0, 0);
+    return value;
+  }, [date, startHour]);
+
+  const displayedDayEnd = useMemo(() => {
+    const value = new Date(date);
+
+    if (endHour === 24) {
+      value.setHours(24, 0, 0, 0);
+    } else {
+      value.setHours(endHour, 0, 0, 0);
+    }
+
+    return value;
+  }, [date, endHour]);
+
   const dayEvents = useMemo(
     () =>
-      events.filter((event) =>
-        isSameDay(new Date(event.start), date),
+      events.filter(
+        (event) =>
+          sameDay(new Date(event.start), date) ||
+          (new Date(event.start) < displayedDayEnd &&
+            new Date(event.end) > displayedDayStart),
       ),
-    [events, date],
+    [date, displayedDayEnd, displayedDayStart, events],
   );
 
-  return (
-    <div className="day-calendar">
-      <div className="day-header">
-        <div className="day-time-header">Time</div>
+  const columns = `86px repeat(${Math.max(
+    resources.length,
+    1,
+  )}, minmax(210px, 1fr))`;
 
-        {groomers.map((groomer) => (
-          <div
-            key={groomer.id}
-            className="day-groomer-header"
-          >
-            {groomer.name}
-          </div>
+  function clamp(value: number) {
+    return Math.max(0, Math.min(slotCount, value));
+  }
+
+  function slotFromStart(value: Date, roundUp = false) {
+    const elapsed =
+      (value.getTime() - displayedDayStart.getTime()) /
+      slotMilliseconds;
+
+    return clamp(
+      roundUp ? Math.ceil(elapsed) : Math.floor(elapsed),
+    );
+  }
+
+  return (
+    <div className="calendar-time-view">
+      <div
+        className="calendar-time-header"
+        style={{ gridTemplateColumns: columns }}
+      >
+        <div />
+        {resources.map((resource) => (
+          <div key={resource.id}>{resource.name}</div>
         ))}
       </div>
 
-      {HOURS.map((hour) => (
-        <div key={hour} className="day-row">
-          <div className="day-hour">
-            {formatHour(hour)}
+      <div
+        className="calendar-time-grid"
+        style={{
+          gridTemplateColumns: columns,
+          gridTemplateRows: `repeat(${slotCount}, ${SLOT_HEIGHT}px)`,
+          ["--calendar-slot-height" as string]: `${SLOT_HEIGHT}px`,
+        }}
+      >
+        {Array.from(
+          { length: endHour - startHour + 1 },
+          (_, index) => startHour + index,
+        ).map((hour) => (
+          <div
+            key={hour}
+            className="calendar-time-label"
+            style={{
+              gridColumn: 1,
+              gridRow:
+                ((hour - startHour) * 60) /
+                  slotMinutes +
+                1,
+            }}
+          >
+            {new Date(2000, 0, 1, hour % 24).toLocaleTimeString(
+              [],
+              { hour: "numeric" },
+            )}
           </div>
+        ))}
 
-          {groomers.map((groomer) => {
-            const appointments = dayEvents.filter(
-              (event) => {
-                const start = new Date(event.start);
-
-                return (
-                  event.resourceIds.includes(groomer.id) &&
-                  start.getHours() === hour
-                );
-              },
+        {resources.flatMap((resource, resourceIndex) =>
+          Array.from({ length: slotCount }, (_, slot) => {
+            const start = new Date(
+              displayedDayStart.getTime() +
+                slot * slotMilliseconds,
             );
 
             return (
               <CalendarDropZone
-                key={`${groomer.id}-${hour}`}
-                date={date}
-                hour={hour}
-                className="day-slot"
+                key={`${resource.id}-${slot}`}
+                start={start}
+                resourceId={resource.id}
                 onMove={onMove}
-                onMoveComplete={onMoveComplete}
                 onMoveError={onMoveError}
-              >
-                {appointments.map((event) => {
-                  const color = getEventColor(event.type);
-
-                  return (
-                    <DraggableCalendarEvent
-                      key={event.id}
-                      event={event}
-                    >
-                      <button
-                        type="button"
-                        className="day-event"
-                        style={{
-                          background: color.background,
-                          color: color.text,
-                          borderLeft: `5px solid ${color.border}`,
-                          opacity: getStatusOpacity(
-                            event.status,
-                          ),
-                        }}
-                        onClick={() =>
-                          onEventClick?.(event)
-                        }
-                      >
-                        <div className="day-event-title">
-                          {event.title}
-                        </div>
-
-                        <div className="day-event-time">
-                          {new Date(
-                            event.start,
-                          ).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          {" - "}
-                          {new Date(
-                            event.end,
-                          ).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </div>
-
-                        <div className="day-event-pets">
-                          {event.petIds.length} Pet
-                          {event.petIds.length !== 1 ? "s" : ""}
-                        </div>
-                      </button>
-                    </DraggableCalendarEvent>
-                  );
-                })}
-              </CalendarDropZone>
+                style={{
+                  gridColumn: resourceIndex + 2,
+                  gridRow: slot + 1,
+                }}
+              />
             );
-          })}
-        </div>
-      ))}
+          }),
+        )}
+
+        {resources.flatMap((resource, resourceIndex) => {
+          const resourceEvents = dayEvents.filter((event) =>
+            event.resourceIds.includes(resource.id),
+          );
+
+          return positionOverlappingEvents(resourceEvents).map(
+            ({ event, column, columnCount }) => {
+              const visibleStart = new Date(
+                Math.max(
+                  new Date(event.start).getTime(),
+                  displayedDayStart.getTime(),
+                ),
+              );
+
+              const visibleEnd = new Date(
+                Math.min(
+                  new Date(event.end).getTime(),
+                  displayedDayEnd.getTime(),
+                ),
+              );
+
+              const startSlot = slotFromStart(
+                visibleStart,
+                false,
+              );
+
+              const endSlot = Math.max(
+                startSlot + 1,
+                slotFromStart(visibleEnd, true),
+              );
+
+              const width = 100 / columnCount;
+              const left = width * column;
+
+              return (
+                <CalendarEventCard
+                  key={event.id}
+                  event={event}
+                  onClick={onEventClick}
+                  className="calendar-time-event-positioned"
+                  style={{
+                    gridColumn: resourceIndex + 2,
+                    gridRow: `${startSlot + 1} / ${endSlot + 1}`,
+                    width: `calc(${width}% - 6px)`,
+                    marginLeft: `calc(${left}% + 3px)`,
+                  }}
+                />
+              );
+            },
+          );
+        })}
+      </div>
     </div>
   );
 }

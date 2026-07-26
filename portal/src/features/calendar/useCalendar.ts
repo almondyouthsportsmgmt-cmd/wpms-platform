@@ -1,8 +1,4 @@
-import {
-  useCallback,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useAppointments } from "../appointments/useAppointments";
 import { useBoarding } from "../boarding/useBoarding";
 import type { ScheduleEvent } from "../scheduling/schedulingTypes";
@@ -22,10 +18,6 @@ function appointmentStatus(status: string): ScheduleEvent["status"] {
   switch (status) {
     case "Scheduled":
       return "pending";
-    case "Confirmed":
-    case "In Service":
-    case "Ready for Pickup":
-      return "confirmed";
     case "Checked In":
       return "checked-in";
     case "Completed":
@@ -42,10 +34,6 @@ function boardingStatus(status: string): ScheduleEvent["status"] {
   switch (status) {
     case "Reserved":
       return "pending";
-    case "Checked In":
-    case "In Stay":
-    case "Ready for Checkout":
-      return "confirmed";
     case "Checked Out":
       return "completed";
     case "Cancelled":
@@ -59,51 +47,44 @@ function dateTime(date: string, time: string) {
   return `${date}T${time || "00:00"}:00`;
 }
 
-function overlapsRange(
+function overlaps(
   event: ScheduleEvent,
-  rangeStart: Date,
-  rangeEnd: Date,
+  start: Date,
+  end: Date,
 ) {
-  const start = new Date(event.start);
-  const end = new Date(event.end);
-
-  return start < rangeEnd && end > rangeStart;
+  const eventStart = new Date(event.start);
+  const eventEnd = new Date(event.end);
+  return eventStart < end && eventEnd > start;
 }
 
-function viewRange(view: CalendarView, selectedDate: Date) {
+function rangeFor(view: CalendarView, date: Date) {
   if (view === "day") {
-    const start = new Date(selectedDate);
+    const start = new Date(date);
     start.setHours(0, 0, 0, 0);
-
-    const end = new Date(selectedDate);
-    end.setHours(23, 59, 59, 999);
-
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
     return { start, end };
   }
 
   if (view === "week") {
-    const start = new Date(selectedDate);
+    const start = new Date(date);
     start.setHours(0, 0, 0, 0);
     start.setDate(start.getDate() - start.getDay());
-
     const end = new Date(start);
     end.setDate(end.getDate() + 7);
-
     return { start, end };
   }
 
   const start = new Date(
-    selectedDate.getFullYear(),
-    selectedDate.getMonth(),
+    date.getFullYear(),
+    date.getMonth(),
     1,
   );
-
   const end = new Date(
-    selectedDate.getFullYear(),
-    selectedDate.getMonth() + 1,
+    date.getFullYear(),
+    date.getMonth() + 1,
     1,
   );
-
   return { start, end };
 }
 
@@ -122,25 +103,25 @@ export function useCalendar() {
     refresh: refreshBoarding,
   } = useBoarding();
 
-  const [view, setView] = useState<CalendarView>("month");
+  const [view, setView] = useState<CalendarView>("day");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [filters, setFilters] =
     useState<CalendarFilter>(DEFAULT_FILTERS);
 
   const allEvents = useMemo<ScheduleEvent[]>(() => {
-    const groomingEvents: ScheduleEvent[] =
-      appointments.map((appointment) => ({
+    const grooming = appointments.map(
+      (appointment): ScheduleEvent => ({
         id: `appointment-${appointment.id}`,
         type: "grooming",
         status: appointmentStatus(appointment.status),
         title:
           appointment.serviceName ||
-          "Grooming Appointment",
+          "Grooming appointment",
         customerId: appointment.customerId,
         petIds: [appointment.petId],
         resourceIds: appointment.assignedStaff
           ? [appointment.assignedStaff]
-          : [],
+          : ["unassigned"],
         referenceId: appointment.id,
         start: dateTime(
           appointment.appointmentDate,
@@ -151,82 +132,49 @@ export function useCalendar() {
           appointment.endTime,
         ),
         notes: appointment.notes,
-      }));
+      }),
+    );
 
-    const boardingEvents: ScheduleEvent[] =
-      stays.flatMap((stay) => {
-        const base = {
-          status: boardingStatus(stay.status),
-          customerId: stay.customerId,
-          petIds: [stay.petId],
-          resourceIds: stay.kennelName
-            ? [`kennel:${stay.kennelName}`]
-            : [],
-          referenceId: stay.id,
-          notes: [
-            stay.foodInstructions,
-            stay.medicationInstructions,
-            stay.emergencyNotes,
-          ]
-            .filter(Boolean)
-            .join(" · "),
-        };
+    const boarding = stays.map(
+      (stay): ScheduleEvent => ({
+        id: `boarding-${stay.id}`,
+        type: "boarding",
+        status: boardingStatus(stay.status),
+        title: "Boarding stay",
+        customerId: stay.customerId,
+        petIds: stay.petId ? [stay.petId] : [],
+        resourceIds: ["boarding"],
+        referenceId: stay.id,
+        start: dateTime(
+          stay.checkInDate,
+          stay.checkInTime,
+        ),
+        end: dateTime(
+          stay.checkOutDate,
+          stay.checkOutTime,
+        ),
+        notes: [
+          stay.kennelName
+            ? `Kennel: ${stay.kennelName}`
+            : "",
+          stay.foodInstructions,
+          stay.medicationInstructions,
+          stay.emergencyNotes,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      }),
+    );
 
-        return [
-          {
-            ...base,
-            id: `boarding-${stay.id}`,
-            type: "boarding" as const,
-            title: `Boarding · ${stay.kennelName || "Unassigned kennel"}`,
-            start: dateTime(
-              stay.checkInDate,
-              stay.checkInTime,
-            ),
-            end: dateTime(
-              stay.checkOutDate,
-              stay.checkOutTime,
-            ),
-          },
-          {
-            ...base,
-            id: `boarding-checkin-${stay.id}`,
-            type: "boarding-checkin" as const,
-            title: `Check in · ${stay.kennelName || "Boarding"}`,
-            start: dateTime(
-              stay.checkInDate,
-              stay.checkInTime,
-            ),
-            end: dateTime(
-              stay.checkInDate,
-              stay.checkInTime,
-            ),
-          },
-          {
-            ...base,
-            id: `boarding-checkout-${stay.id}`,
-            type: "boarding-checkout" as const,
-            title: `Check out · ${stay.kennelName || "Boarding"}`,
-            start: dateTime(
-              stay.checkOutDate,
-              stay.checkOutTime,
-            ),
-            end: dateTime(
-              stay.checkOutDate,
-              stay.checkOutTime,
-            ),
-          },
-        ];
-      });
-
-    return [...groomingEvents, ...boardingEvents];
+    return [...grooming, ...boarding];
   }, [appointments, stays]);
 
   const events = useMemo(() => {
-    const range = viewRange(view, selectedDate);
+    const range = rangeFor(view, selectedDate);
 
     return allEvents
       .filter((event) =>
-        overlapsRange(event, range.start, range.end),
+        overlaps(event, range.start, range.end),
       )
       .filter((event) => {
         const isBoarding =
@@ -270,24 +218,21 @@ export function useCalendar() {
 
   const previous = useCallback(() => {
     setSelectedDate((current) => {
-      const next = new Date(current);
-
+      const result = new Date(current);
       if (view === "month") {
-        next.setMonth(next.getMonth() - 1);
+        result.setMonth(result.getMonth() - 1);
       } else if (view === "week") {
-        next.setDate(next.getDate() - 7);
+        result.setDate(result.getDate() - 7);
       } else {
-        next.setDate(next.getDate() - 1);
+        result.setDate(result.getDate() - 1);
       }
-
-      return next;
+      return result;
     });
   }, [view]);
 
   const next = useCallback(() => {
     setSelectedDate((current) => {
       const result = new Date(current);
-
       if (view === "month") {
         result.setMonth(result.getMonth() + 1);
       } else if (view === "week") {
@@ -295,7 +240,6 @@ export function useCalendar() {
       } else {
         result.setDate(result.getDate() + 1);
       }
-
       return result;
     });
   }, [view]);
@@ -312,30 +256,35 @@ export function useCalendar() {
   }, [refreshAppointments, refreshBoarding]);
 
   const summary = useMemo(() => {
-    const selected = new Date(selectedDate);
-    selected.setHours(0, 0, 0, 0);
+    const start = new Date(selectedDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
 
-    const nextDay = new Date(selected);
-    nextDay.setDate(nextDay.getDate() + 1);
-
-    const dayEvents = allEvents.filter((event) =>
-      overlapsRange(event, selected, nextDay),
+    const selected = allEvents.filter((event) =>
+      overlaps(event, start, end),
     );
 
     return {
-      appointments: dayEvents.filter(
+      appointments: selected.filter(
         (event) => event.type === "grooming",
       ).length,
-      boarding: dayEvents.filter(
+      boarding: selected.filter(
         (event) => event.type === "boarding",
       ).length,
-      checkIns: dayEvents.filter(
-        (event) => event.type === "boarding-checkin",
+      checkIns: allEvents.filter(
+        (event) =>
+          event.type === "boarding" &&
+          new Date(event.start) >= start &&
+          new Date(event.start) < end,
       ).length,
-      checkOuts: dayEvents.filter(
-        (event) => event.type === "boarding-checkout",
+      checkOuts: allEvents.filter(
+        (event) =>
+          event.type === "boarding" &&
+          new Date(event.end) >= start &&
+          new Date(event.end) < end,
       ).length,
-      completed: dayEvents.filter(
+      completed: selected.filter(
         (event) => event.status === "completed",
       ).length,
     };
@@ -356,7 +305,6 @@ export function useCalendar() {
     reload,
     loading:
       appointmentsLoading || boardingLoading,
-    error:
-      appointmentsError || boardingError,
+    error: appointmentsError || boardingError,
   };
 }

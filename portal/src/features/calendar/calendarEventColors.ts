@@ -11,71 +11,53 @@ export interface CalendarColor {
 
 const COLORS: Record<ScheduleEventType, CalendarColor> = {
   grooming: {
-    background: "#DCFCE7",
-    border: "#22C55E",
+    background: "#dcfce7",
+    border: "#22c55e",
     text: "#166534",
   },
-
   boarding: {
-    background: "#DBEAFE",
-    border: "#3B82F6",
-    text: "#1D4ED8",
+    background: "#dbeafe",
+    border: "#3b82f6",
+    text: "#1d4ed8",
   },
-
   "boarding-checkin": {
-    background: "#FEF3C7",
-    border: "#F59E0B",
-    text: "#92400E",
+    background: "#fef3c7",
+    border: "#f59e0b",
+    text: "#92400e",
   },
-
   "boarding-checkout": {
-    background: "#FED7AA",
-    border: "#FB923C",
-    text: "#9A3412",
+    background: "#ffedd5",
+    border: "#fb923c",
+    text: "#9a3412",
   },
-
   maintenance: {
-    background: "#FEE2E2",
-    border: "#EF4444",
-    text: "#991B1B",
+    background: "#fee2e2",
+    border: "#ef4444",
+    text: "#991b1b",
   },
-
   "employee-pto": {
-    background: "#EDE9FE",
-    border: "#8B5CF6",
-    text: "#5B21B6",
+    background: "#ede9fe",
+    border: "#8b5cf6",
+    text: "#5b21b6",
   },
-
   blocked: {
-    background: "#E5E7EB",
-    border: "#6B7280",
+    background: "#e5e7eb",
+    border: "#6b7280",
     text: "#374151",
   },
-
   holiday: {
-    background: "#FCE7F3",
-    border: "#EC4899",
-    text: "#9D174D",
+    background: "#fce7f3",
+    border: "#ec4899",
+    text: "#9d174d",
   },
 };
 
-export function getEventColor(
-  type: ScheduleEventType,
-): CalendarColor {
+export function getEventColor(type: ScheduleEventType) {
   return COLORS[type];
 }
 
-export function getStatusOpacity(
-  status: ScheduleStatus,
-): number {
-  switch (status) {
-    case "completed":
-      return 0.45;
-
-    case "cancelled":
-      return 0.25;
-
-    default:
-      return 1;
-  }
+export function getStatusOpacity(status: ScheduleStatus) {
+  if (status === "completed") return 0.55;
+  if (status === "cancelled") return 0.35;
+  return 1;
 }
