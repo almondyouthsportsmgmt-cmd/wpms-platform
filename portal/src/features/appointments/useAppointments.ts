@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { changeAppointmentStatus, createAppointment, listAppointments, updateAppointment } from "./appointmentService";
+import {
+  changeAppointmentStatus,
+  listAppointments,
+} from "./appointmentService";
+
+import { appointmentScheduler } from "../appointments/appointmentScheduler";
 import type { Appointment, AppointmentInput } from "./appointmentTypes";
 
 export function useAppointments() {
@@ -21,14 +26,37 @@ export function useAppointments() {
 
   useEffect(() => { void refresh(); }, [refresh]);
 
-  async function save(input: AppointmentInput, id?: string) {
-    const saved = id ? await updateAppointment(id, input) : await createAppointment(input);
-    setAppointments((current) => {
-      const next = id ? current.map((item) => item.id === id ? saved : item) : [...current, saved];
-      return next.sort((a, b) => `${a.appointmentDate}T${a.startTime}`.localeCompare(`${b.appointmentDate}T${b.startTime}`));
-    });
-    return saved;
-  }
+  async function save(
+  input: AppointmentInput,
+  id?: string,
+) {
+  const saved = id
+    ? await appointmentScheduler.update(
+        id,
+        input,
+      )
+    : await appointmentScheduler.create(
+        input,
+      );
+
+  setAppointments((current) => {
+    const next = id
+      ? current.map((item) =>
+          item.id === id
+            ? saved
+            : item,
+        )
+      : [...current, saved];
+
+    return next.sort((a, b) =>
+      `${a.appointmentDate}T${a.startTime}`.localeCompare(
+        `${b.appointmentDate}T${b.startTime}`,
+      ),
+    );
+  });
+
+  return saved;
+}
 
   async function setStatus(id: string, status: Appointment["status"]) {
     const saved = await changeAppointmentStatus(id, status);

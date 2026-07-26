@@ -1,5 +1,8 @@
 export type PetSex = "Male" | "Female" | "Unknown";
 export type PetSize = "Small" | "Medium" | "Large" | "Giant";
+export type PetHairLength = "Long Coat" | "Short Coat" | "Wire Coat";
+export type PetFixedStatus = "Spayed (Female)" | "Neutered (Male)" | "Intact";
+export type PetAvatar = "🐕" | "🐶" | "🐩" | "🦮" | "🐕‍🦺" | "🐈" | "🐈‍⬛" | "🐾";
 
 export type Pet = {
   id: string;
@@ -9,6 +12,8 @@ export type Pet = {
   breed: string;
   color: string;
   sex: PetSex;
+  fixedStatus: PetFixedStatus;
+  hairLength: PetHairLength;
   birthday: string;
   weightPounds: number | null;
   size: PetSize;
@@ -20,10 +25,12 @@ export type Pet = {
   behaviorNotes: string;
   groomingNotes: string;
   preferredGroomer: string;
+  preferredShampoo: string;
   vaccinationRabiesExpiresOn: string;
   vaccinationBordetellaExpiresOn: string;
   vaccinationDhppExpiresOn: string;
   photoUrl: string;
+  avatar: PetAvatar;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

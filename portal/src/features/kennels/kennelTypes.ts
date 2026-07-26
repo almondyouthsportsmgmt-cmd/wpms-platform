@@ -1,5 +1,16 @@
-export type KennelType = "Standard" | "Luxury" | "Cat Condo" | "Isolation" | "Daycare";
-export type KennelStatus = "Available" | "Reserved" | "Occupied" | "Cleaning" | "Maintenance";
+export type KennelType =
+  | "Standard"
+  | "Luxury"
+  | "Cat Condo"
+  | "Isolation"
+  | "Daycare";
+
+export type KennelStatus =
+  | "Available"
+  | "Reserved"
+  | "Occupied"
+  | "Cleaning"
+  | "Maintenance";
 
 export type Kennel = {
   id: string;
@@ -8,10 +19,11 @@ export type Kennel = {
   type: KennelType;
   capacity: number;
   status: KennelStatus;
-  petId: string;
+  petIds: string[];
   customerId: string;
   checkInDate: string;
   checkOutDate: string;
+  price: number;
   notes: string;
   updatedAt: string;
 };

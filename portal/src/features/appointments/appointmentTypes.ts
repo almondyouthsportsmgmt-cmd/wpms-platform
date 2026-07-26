@@ -15,6 +15,7 @@ export type Appointment = {
   customerId: string;
   petId: string;
   appointmentType: AppointmentType;
+  serviceId: string;
   serviceName: string;
   appointmentDate: string;
   startTime: string;

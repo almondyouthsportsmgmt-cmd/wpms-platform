@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, HeartPulse, Pencil, Plus, Search } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AppButton } from "../../components/common/AppButton";
 import { AppCard } from "../../components/common/AppCard";
 import { useCustomers } from "../customers/useCustomers";
@@ -18,6 +18,8 @@ function vaccinationStatus(pet: Pet) {
 }
 
 export function PetsPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { pets, loading, error, refresh, save } = usePets();
   const { customers } = useCustomers();
   const [query, setQuery] = useState("");
@@ -27,12 +29,25 @@ export function PetsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [notice, setNotice] = useState("");
 
+  useEffect(() => {
+    const state = location.state as { openAddPet?: boolean } | null;
+    if (!state?.openAddPet) return;
+
+    setEditing(null);
+    setModalOpen(true);
+
+    navigate(location.pathname, {
+      replace: true,
+      state: null,
+    });
+  }, [location.pathname, location.state, navigate]);
+
   const customerMap = useMemo(() => new Map(customers.map((customer) => [customer.id, customer])), [customers]);
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return pets.filter((pet) => {
       const customer = customerMap.get(pet.customerId);
-      const haystack = [pet.name, pet.breed, pet.species, customer?.firstName, customer?.lastName].join(" ").toLowerCase();
+      const haystack = [pet.name, pet.breed, pet.species, pet.hairLength, pet.fixedStatus, pet.preferredShampoo, customer?.firstName, customer?.lastName].join(" ").toLowerCase();
       const matchesSearch = !needle || haystack.includes(needle);
       const matchesStatus = status === "All" || (status === "Active" ? pet.isActive : !pet.isActive);
       const matchesCustomer = customerId === "All" || pet.customerId === customerId;
@@ -57,7 +72,7 @@ export function PetsPage() {
       {loading && <div className="module-state"><div className="paw-loader">🐾</div><p>Loading pets...</p></div>}
       {!loading && error && <div className="module-state error-state"><p>{error}</p><AppButton onClick={() => void refresh()}>Try again</AppButton></div>}
       {!loading && !error && filtered.length === 0 && <div className="module-state"><div className="empty-icon">🐶</div><h2>No pets found</h2><p>Adjust the filters or add the shop’s first pet profile.</p></div>}
-      {!loading && !error && filtered.length > 0 && <div className="pet-grid">{filtered.map((pet) => { const customer = customerMap.get(pet.customerId); const vaccine = vaccinationStatus(pet); return <AppCard className="pet-directory-card" key={pet.id}><div className="pet-card-top"><Link to={`/pets/${pet.id}`} className="pet-card-avatar">{pet.photoUrl ? <img src={pet.photoUrl} alt=""/> : pet.species === "Cat" ? "🐈" : "🐕"}</Link><div className="pet-card-copy"><Link to={`/pets/${pet.id}`}><strong>{pet.name}</strong></Link><span>{pet.breed || pet.species}</span><small>{customer ? `${customer.firstName} ${customer.lastName}` : "Owner unavailable"}</small></div><button className="icon-button" aria-label={`Edit ${pet.name}`} onClick={() => { setEditing(pet); setModalOpen(true); }}><Pencil size={16}/></button></div><div className="pet-card-meta"><span>{pet.size}</span><span>{pet.weightPounds ? `${pet.weightPounds} lb` : "Weight not set"}</span><span className={`vaccine-badge vaccine-${vaccine.toLowerCase().replace(" ", "-")}`}>{vaccine}</span></div></AppCard>; })}</div>}
+      {!loading && !error && filtered.length > 0 && <div className="pet-grid">{filtered.map((pet) => { const customer = customerMap.get(pet.customerId); const vaccine = vaccinationStatus(pet); return <AppCard className="pet-directory-card" key={pet.id}><div className="pet-card-top"><Link to={`/pets/${pet.id}`} className="pet-card-avatar">{pet.photoUrl ? <img src={pet.photoUrl} alt=""/> : pet.avatar || (pet.species === "Cat" ? "🐈" : "🐕")}</Link><div className="pet-card-copy"><Link to={`/pets/${pet.id}`}><strong>{pet.name}</strong></Link><span>{pet.breed || pet.species}</span><small>{customer ? `${customer.firstName} ${customer.lastName}` : "Owner unavailable"}</small></div><button className="icon-button" aria-label={`Edit ${pet.name}`} onClick={() => { setEditing(pet); setModalOpen(true); }}><Pencil size={16}/></button></div><div className="pet-card-meta"><span>{pet.size}</span><span>{pet.hairLength}</span><span>{pet.fixedStatus}</span><span>{pet.weightPounds ? `${pet.weightPounds} lb` : "Weight not set"}</span><span className={`vaccine-badge vaccine-${vaccine.toLowerCase().replace(" ", "-")}`}>{vaccine}</span></div></AppCard>; })}</div>}
     </AppCard>
     <PetFormModal pet={editing} customers={customers} open={modalOpen} onClose={() => setModalOpen(false)} onSave={handleSave}/>
   </div>;

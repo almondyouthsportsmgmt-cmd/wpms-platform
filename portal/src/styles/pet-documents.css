@@ -1,0 +1,41 @@
+/* Pet Documents 2.1.3 */
+.pet-documents-card{padding:0;overflow:hidden}
+.pet-documents-panel{padding:22px}
+.pet-documents-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pet-documents-heading h2{margin:0;font:700 1rem Poppins,sans-serif}
+.pet-document-count{min-width:28px;height:28px;display:grid;place-items:center;border-radius:999px;background:#18211d;color:var(--lime);font-size:.7rem;font-weight:900}
+.pet-document-dropzone{margin-top:16px;padding:20px;border:2px dashed #cbd7c7;border-radius:16px;background:#f8fbf6;text-align:center;transition:.18s}
+.pet-document-dropzone.is-dragging{border-color:#79c433;background:#eef9e6}
+.pet-document-dropzone>svg{color:#69a820}
+.pet-document-dropzone strong,.pet-document-dropzone p{display:block}
+.pet-document-dropzone strong{margin-top:8px;font-size:.82rem}
+.pet-document-dropzone p{margin:5px auto 12px;max-width:390px;color:#77837d;font-size:.68rem;line-height:1.45}
+.pet-document-file-input{display:none}
+.pet-document-upload-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.pet-document-upload-options .field{margin:0}
+.pet-document-description{grid-column:1/-1}
+.pet-document-search{display:flex;align-items:center;gap:8px;margin:15px 0 8px;border:1px solid var(--line);border-radius:12px;padding:0 11px;background:#fff}
+.pet-document-search input{width:100%;min-height:40px;border:0;outline:0;background:transparent}
+.pet-document-list{display:grid;gap:7px}
+.pet-document-row{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid #e7ece4;border-radius:13px;padding:9px}
+.pet-document-name{flex:1;min-width:0;display:flex;align-items:center;gap:10px;border:0;background:transparent;text-align:left}
+.pet-document-icon{width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto;border-radius:11px;background:#eff8e8;color:#5c9725}
+.pet-document-name>span:last-child{min-width:0}
+.pet-document-name strong,.pet-document-name small{display:block}
+.pet-document-name strong{font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pet-document-name small{margin-top:3px;color:#7d8982;font-size:.6rem}
+.pet-document-actions{display:flex;gap:5px}
+.pet-document-actions .icon-button{width:34px;height:34px}
+.danger-button{color:#a84444}
+.pet-document-empty{display:grid;place-items:center;text-align:center;padding:25px;color:#7d8982}
+.pet-document-empty strong,.pet-document-empty span{display:block}
+.pet-document-empty strong{margin-top:8px;font-size:.76rem;color:#3f4c45}
+.pet-document-empty span{margin-top:4px;font-size:.65rem}
+.pet-document-viewer{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:20px}
+.pet-document-viewer-backdrop{position:absolute;inset:0;border:0;background:rgba(7,12,9,.72);backdrop-filter:blur(5px)}
+.pet-document-viewer-card{position:relative;z-index:1;width:min(960px,100%);height:min(84vh,760px);display:flex;flex-direction:column;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 40px 110px rgba(0,0,0,.4)}
+.pet-document-viewer-card header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.pet-document-viewer-card h2{margin:0;font:700 .95rem Poppins,sans-serif}
+.pet-document-viewer-card img{width:100%;height:100%;object-fit:contain;background:#111}
+.pet-document-viewer-card iframe{width:100%;height:100%;border:0}
+@media(max-width:620px){.pet-document-upload-options{grid-template-columns:1fr}.pet-document-description{grid-column:auto}.pet-document-row{align-items:flex-start;flex-direction:column}.pet-document-actions{width:100%;justify-content:flex-end}}
