@@ -328,3 +328,65 @@
   }
 
 }
+
+/* Calendar drag-and-drop */
+.calendar-drop-zone {
+  position: relative;
+  min-height: 64px;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.calendar-drop-zone.is-dragging-over {
+  background: rgba(151, 229, 76, 0.14);
+  box-shadow:
+    inset 0 0 0 2px rgba(118, 196, 45, 0.7);
+}
+
+.calendar-drop-zone.is-dragging-over::after {
+  content: "Move here";
+  position: absolute;
+  inset: 6px;
+  display: grid;
+  place-items: center;
+  z-index: 4;
+  border: 1px dashed rgba(75, 133, 24, 0.75);
+  border-radius: 9px;
+  background: rgba(246, 255, 238, 0.92);
+  color: #3c681f;
+  font-size: 0.68rem;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.calendar-drop-zone.is-moving {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.calendar-draggable-event {
+  cursor: grab;
+}
+
+.calendar-draggable-event:active {
+  cursor: grabbing;
+}
+
+.calendar-move-error {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  white-space: pre-line;
+}
+
+.calendar-move-error button {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+}

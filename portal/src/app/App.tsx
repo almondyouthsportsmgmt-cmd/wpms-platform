@@ -27,6 +27,7 @@ import { RemindersPage } from "../features/reminders/RemindersPage";
 import { ClientFormsPage } from "../features/forms/ClientFormsPage";
 import { KennelMapPage } from "../features/kennels/KennelMapPage";
 import { CrmMarketingPage } from "../features/crm/CrmMarketingPage";
+import CalendarPage from "../features/calendar/CalendarPage";
 export default function App() {
   return <Routes>
     <Route path="/login" element={<LoginPage/>}/>
@@ -36,7 +37,7 @@ export default function App() {
       <Route path="customers/:id" element={<CustomerDetailPage/>}/>
       <Route path="pets" element={<PetsPage/>}/>
       <Route path="pets/:id" element={<PetDetailPage/>}/>
-      <Route path="calendar" element={<AppointmentsPage/>}/>
+      <Route path="calendar" element={<CalendarPage/>}/>
       <Route path="appointments" element={<AppointmentsPage/>}/>
       <Route path="grooming" element={<GroomingPage/>}/>
       <Route path="boarding" element={<BoardingPage/>}/>

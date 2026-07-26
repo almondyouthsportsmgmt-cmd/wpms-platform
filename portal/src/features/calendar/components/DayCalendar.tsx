@@ -9,6 +9,9 @@ import {
   getStatusOpacity,
 } from "../calendarEventColors";
 
+import CalendarDropZone from "../CalendarDropZone";
+import DraggableCalendarEvent from "./DraggableCalendarEvent";
+
 import "../calendar.css";
 
 interface GroomerResource {
@@ -20,28 +23,36 @@ interface DayCalendarProps {
   date: Date;
   events: ScheduleEvent[];
   groomers: GroomerResource[];
-  onEventClick?: (
+  onEventClick?: (event: ScheduleEvent) => void;
+  onMove: (
     event: ScheduleEvent,
-  ) => void;
+    start: Date,
+    end: Date,
+  ) => Promise<{
+    success: boolean;
+    conflicts?: Array<{ reason: string }>;
+  }>;
+  onMoveComplete?: (message: string) => void;
+  onMoveError?: (message: string) => void;
 }
 
 const HOURS = Array.from(
   { length: 12 },
-  (_, i) => i + 8,
+  (_, index) => index + 8,
 );
 
-function isSameDay(
-  left: Date,
-  right: Date,
-) {
+function isSameDay(left: Date, right: Date) {
   return (
-    left.getFullYear() ===
-      right.getFullYear() &&
-    left.getMonth() ===
-      right.getMonth() &&
-    left.getDate() ===
-      right.getDate()
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
   );
+}
+
+function formatHour(hour: number) {
+  if (hour === 12) return "12:00 PM";
+  if (hour > 12) return `${hour - 12}:00 PM`;
+  return `${hour}:00 AM`;
 }
 
 export default function DayCalendar({
@@ -49,26 +60,22 @@ export default function DayCalendar({
   events,
   groomers,
   onEventClick,
+  onMove,
+  onMoveComplete,
+  onMoveError,
 }: DayCalendarProps) {
   const dayEvents = useMemo(
     () =>
       events.filter((event) =>
-        isSameDay(
-          new Date(event.start),
-          date,
-        ),
+        isSameDay(new Date(event.start), date),
       ),
     [events, date],
   );
 
   return (
     <div className="day-calendar">
-
       <div className="day-header">
-
-        <div className="day-time-header">
-          Time
-        </div>
+        <div className="day-time-header">Time</div>
 
         {groomers.map((groomer) => (
           <div
@@ -78,79 +85,57 @@ export default function DayCalendar({
             {groomer.name}
           </div>
         ))}
-
       </div>
 
       {HOURS.map((hour) => (
-        <div
-          key={hour}
-          className="day-row"
-        >
+        <div key={hour} className="day-row">
           <div className="day-hour">
-
-            {hour > 12
-              ? `${hour - 12}:00 PM`
-              : `${hour}:00 AM`}
-
+            {formatHour(hour)}
           </div>
 
           {groomers.map((groomer) => {
-            const appointments =
-              dayEvents.filter(
-                (event) => {
-                  const start =
-                    new Date(
-                      event.start,
-                    );
+            const appointments = dayEvents.filter(
+              (event) => {
+                const start = new Date(event.start);
 
-                  return (
-                    event.resourceIds.includes(
-                      groomer.id,
-                    ) &&
-                    start.getHours() ===
-                      hour
-                  );
-                },
-              );
+                return (
+                  event.resourceIds.includes(groomer.id) &&
+                  start.getHours() === hour
+                );
+              },
+            );
 
             return (
-              <div
+              <CalendarDropZone
                 key={`${groomer.id}-${hour}`}
+                date={date}
+                hour={hour}
                 className="day-slot"
+                onMove={onMove}
+                onMoveComplete={onMoveComplete}
+                onMoveError={onMoveError}
               >
-                {appointments.map(
-                  (event) => {
-                    const color =
-                      getEventColor(
-                        event.type,
-                      );
+                {appointments.map((event) => {
+                  const color = getEventColor(event.type);
 
-                    return (
+                  return (
+                    <DraggableCalendarEvent
+                      key={event.id}
+                      event={event}
+                    >
                       <button
-                        key={
-                          event.id
-                        }
                         type="button"
                         className="day-event"
                         style={{
-                          background:
-                            color.background,
-
-                          color:
-                            color.text,
-
-                          borderLeft:
-                            `5px solid ${color.border}`,
-
-                          opacity:
-                            getStatusOpacity(
-                              event.status,
-                            ),
+                          background: color.background,
+                          color: color.text,
+                          borderLeft: `5px solid ${color.border}`,
+                          opacity: getStatusOpacity(
+                            event.status,
+                          ),
                         }}
                         onClick={() =>
-                          onEventClick?.(
-                            event,
-                          )
+                          onEventClick?.(event)
                         }
                       >
                         <div className="day-event-title">
@@ -160,52 +145,32 @@ export default function DayCalendar({
                         <div className="day-event-time">
                           {new Date(
                             event.start,
-                          ).toLocaleTimeString(
-                            [],
-                            {
-                              hour:
-                                "2-digit",
-                              minute:
-                                "2-digit",
-                            },
-                          )}
-
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                           {" - "}
-
                           {new Date(
                             event.end,
-                          ).toLocaleTimeString(
-                            [],
-                            {
-                              hour:
-                                "2-digit",
-                              minute:
-                                "2-digit",
-                            },
-                          )}
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </div>
 
                         <div className="day-event-pets">
-                          {event.petIds.length}
-                          {" "}
-                          Pet
-                          {event.petIds.length !==
-                          1
-                            ? "s"
-                            : ""}
+                          {event.petIds.length} Pet
+                          {event.petIds.length !== 1 ? "s" : ""}
                         </div>
-
                       </button>
-                    );
-                  },
-                )}
-              </div>
+                    </DraggableCalendarEvent>
+                  );
+                })}
+              </CalendarDropZone>
             );
           })}
-
         </div>
       ))}
-
     </div>
   );
 }

@@ -1,265 +1,359 @@
-import { useMemo } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  RefreshCw,
+} from "lucide-react";
+
+import MonthCalendar from "./components/MonthCalendar";
+import WeekCalendar from "./components/WeekCalendar";
+import DayCalendar from "./components/DayCalendar";
+import EventDetailsDrawer from "./components/EventDetailsDrawer";
 
 import { useCalendar } from "./useCalendar";
+import { useCalendarDragDrop } from "./useCalendarDragDrop";
+
+import type { CalendarView } from "./calendarTypes";
+import type { ScheduleEvent } from "../scheduling/schedulingTypes";
 
 import "./calendar.css";
 
-function formatHeader(date: Date, view: "month" | "week" | "day") {
-  switch (view) {
-    case "month":
-      return date.toLocaleDateString(undefined, {
-        month: "long",
-        year: "numeric",
-      });
-
-    case "week":
-      return `Week of ${date.toLocaleDateString()}`;
-
-    default:
-      return date.toLocaleDateString(undefined, {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      });
+function formatHeader(
+  date: Date,
+  view: CalendarView,
+): string {
+  if (view === "month") {
+    return date.toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
   }
-}
 
-function eventColor(type: string) {
-  switch (type) {
-    case "grooming":
-      return "#22c55e";
+  if (view === "week") {
+    const start = new Date(date);
+    start.setDate(start.getDate() - start.getDay());
 
-    case "boarding":
-      return "#3b82f6";
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
 
-    case "boarding-checkin":
-      return "#f59e0b";
-
-    case "boarding-checkout":
-      return "#fb923c";
-
-    case "maintenance":
-      return "#ef4444";
-
-    default:
-      return "#8b5cf6";
+    return `${start.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    })} – ${end.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })}`;
   }
+
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
 export default function CalendarPage() {
   const {
     view,
     setView,
-
     selectedDate,
-
+    filters,
+    setFilters,
+    events,
+    summary,
     previous,
     next,
     today,
-
-    events,
-    summary,
+    reload,
+    loading,
+    error,
   } = useCalendar();
 
-  const sortedEvents = useMemo(
-    () =>
-      [...events].sort(
-        (a, b) =>
-          new Date(a.start).getTime() -
-          new Date(b.start).getTime(),
-      ),
-    [events],
-  );
+  const { moveEvent } = useCalendarDragDrop(reload);
+
+  const [selectedEvent, setSelectedEvent] =
+    useState<ScheduleEvent | null>(null);
+
+  const [notice, setNotice] = useState("");
+  const [moveError, setMoveError] = useState("");
+
+  const groomers = useMemo(() => {
+    const resourceIds = new Set<string>();
+
+    events.forEach((event) => {
+      if (event.type !== "grooming") return;
+
+      event.resourceIds.forEach((resourceId) => {
+        resourceIds.add(resourceId);
+      });
+    });
+
+    const items = Array.from(resourceIds).map((id) => ({
+      id,
+      name: id,
+    }));
+
+    return items.length > 0
+      ? items
+      : [{ id: "unassigned", name: "Unassigned" }];
+  }, [events]);
+
+  const calendarEvents = useMemo(() => {
+    if (view !== "day") return events;
+
+    return events.map((event) => {
+      if (
+        event.type === "grooming" &&
+        event.resourceIds.length === 0
+      ) {
+        return {
+          ...event,
+          resourceIds: ["unassigned"],
+        };
+      }
+
+      return event;
+    });
+  }, [events, view]);
+
+  function showNotice(message: string) {
+    setMoveError("");
+    setNotice(message);
+    window.setTimeout(() => setNotice(""), 2600);
+  }
+
+  function showMoveError(message: string) {
+    setNotice("");
+    setMoveError(message);
+  }
 
   return (
     <div className="calendar-page">
-
-      <div className="calendar-header">
-
+      <section className="calendar-header">
         <div className="calendar-title">
-
           <CalendarDays size={28} />
 
           <div>
-
+            <span className="eyebrow">Shop operations</span>
             <h1>Operations Calendar</h1>
-
-            <span>
-              Grooming & Boarding
-            </span>
-
+            <p>
+              Grooming appointments and boarding stays share
+              one calendar while keeping separate scheduling
+              resources.
+            </p>
           </div>
-
         </div>
 
         <div className="calendar-toolbar">
-
-          <button onClick={previous}>
+          <button
+            type="button"
+            onClick={previous}
+            aria-label="Previous calendar period"
+          >
             <ChevronLeft size={18} />
           </button>
 
-          <button onClick={today}>
+          <button type="button" onClick={today}>
             Today
           </button>
 
-          <button onClick={next}>
+          <button
+            type="button"
+            onClick={next}
+            aria-label="Next calendar period"
+          >
             <ChevronRight size={18} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => void reload()}
+            disabled={loading}
+          >
+            <RefreshCw size={17} />
+            {loading ? "Refreshing..." : "Refresh"}
           </button>
 
           <select
             value={view}
-            onChange={(e) =>
-              setView(
-                e.target.value as
-                  | "month"
-                  | "week"
-                  | "day",
-              )
+            onChange={(event) =>
+              setView(event.target.value as CalendarView)
             }
+            aria-label="Calendar view"
           >
-            <option value="month">
-              Month
-            </option>
-
-            <option value="week">
-              Week
-            </option>
-
-            <option value="day">
-              Day
-            </option>
-
+            <option value="month">Month</option>
+            <option value="week">Week</option>
+            <option value="day">Day</option>
           </select>
-
         </div>
+      </section>
 
-      </div>
+      {notice && (
+        <div className="success-notice">{notice}</div>
+      )}
 
-      <div className="calendar-current-date">
+      {moveError && (
+        <div className="form-error calendar-move-error">
+          <span>{moveError}</span>
+          <button
+            type="button"
+            onClick={() => setMoveError("")}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      <section className="calendar-current-date">
         {formatHeader(selectedDate, view)}
-      </div>
+      </section>
 
-      <div className="calendar-summary">
-
+      <section className="calendar-summary">
         <div className="calendar-card">
-          <strong>
-            {summary.appointments}
-          </strong>
-
-          <span>Appointments</span>
+          <strong>{summary.appointments}</strong>
+          <span>Grooming appointments</span>
         </div>
-
         <div className="calendar-card">
-          <strong>
-            {summary.boarding}
-          </strong>
-
-          <span>Boarding</span>
+          <strong>{summary.boarding}</strong>
+          <span>Boarding stays</span>
         </div>
-
         <div className="calendar-card">
-          <strong>
-            {summary.checkIns}
-          </strong>
-
-          <span>Check-Ins</span>
+          <strong>{summary.checkIns}</strong>
+          <span>Boarding check-ins</span>
         </div>
-
         <div className="calendar-card">
-          <strong>
-            {summary.checkOuts}
-          </strong>
-
-          <span>Check-Outs</span>
+          <strong>{summary.checkOuts}</strong>
+          <span>Boarding check-outs</span>
         </div>
-
         <div className="calendar-card">
-          <strong>
-            {summary.completed}
-          </strong>
-
+          <strong>{summary.completed}</strong>
           <span>Completed</span>
         </div>
+      </section>
 
-      </div>
+      <section className="calendar-filter-panel">
+        <div className="calendar-filter-title">
+          <Filter size={17} />
+          <strong>Display filters</strong>
+        </div>
 
-      <div className="calendar-events">
+        <label>
+          <input
+            type="checkbox"
+            checked={filters.showAppointments}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                showAppointments: event.target.checked,
+              }))
+            }
+          />
+          <span>Grooming</span>
+        </label>
 
-        {sortedEvents.length === 0 && (
-          <div className="calendar-empty">
-            No scheduled events.
-          </div>
-        )}
+        <label>
+          <input
+            type="checkbox"
+            checked={filters.showBoarding}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                showBoarding: event.target.checked,
+              }))
+            }
+          />
+          <span>Boarding</span>
+        </label>
 
-        {sortedEvents.map((event) => (
-          <div
-            key={event.id}
-            className="calendar-event"
-            style={{
-              borderLeft: `6px solid ${eventColor(
-                event.type,
-              )}`,
-            }}
-          >
-            <div className="calendar-event-header">
+        <label>
+          <input
+            type="checkbox"
+            checked={filters.showCompleted}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                showCompleted: event.target.checked,
+              }))
+            }
+          />
+          <span>Completed</span>
+        </label>
 
-              <strong>
-                {event.title}
-              </strong>
+        <label>
+          <input
+            type="checkbox"
+            checked={filters.showCancelled}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                showCancelled: event.target.checked,
+              }))
+            }
+          />
+          <span>Cancelled</span>
+        </label>
+      </section>
 
-              <span>
-                {event.type}
-              </span>
+      {error && (
+        <div className="module-state error-state">
+          <p>{error}</p>
+          <button type="button" onClick={() => void reload()}>
+            Try again
+          </button>
+        </div>
+      )}
 
-            </div>
+      {!error && loading && events.length === 0 && (
+        <div className="module-state">
+          <div className="paw-loader">🐾</div>
+          <p>Loading calendar...</p>
+        </div>
+      )}
 
-            <div className="calendar-event-time">
+      {!error && (!loading || events.length > 0) && (
+        <section className="calendar-view-container">
+          {view === "month" && (
+            <MonthCalendar
+              month={selectedDate}
+              events={calendarEvents}
+              onEventClick={setSelectedEvent}
+            />
+          )}
 
-              <div>
-                <strong>Start</strong>
+          {view === "week" && (
+            <WeekCalendar
+              weekStart={selectedDate}
+              events={calendarEvents}
+              onEventClick={setSelectedEvent}
+              onMove={moveEvent}
+              onMoveComplete={showNotice}
+              onMoveError={showMoveError}
+            />
+          )}
 
-                <div>
-                  {new Date(
-                    event.start,
-                  ).toLocaleString()}
-                </div>
+          {view === "day" && (
+            <DayCalendar
+              date={selectedDate}
+              events={calendarEvents}
+              groomers={groomers}
+              onEventClick={setSelectedEvent}
+              onMove={moveEvent}
+              onMoveComplete={showNotice}
+              onMoveError={showMoveError}
+            />
+          )}
+        </section>
+      )}
 
-              </div>
-
-              <div>
-                <strong>End</strong>
-
-                <div>
-                  {new Date(
-                    event.end,
-                  ).toLocaleString()}
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="calendar-event-footer">
-
-              <span>
-                Status: {event.status}
-              </span>
-
-              <span>
-                Pets:
-                {" "}
-                {event.petIds.length}
-              </span>
-
-            </div>
-
-          </div>
-        ))}
-
-      </div>
-
+      <EventDetailsDrawer
+        open={selectedEvent !== null}
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </div>
   );
 }
