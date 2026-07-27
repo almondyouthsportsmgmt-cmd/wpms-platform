@@ -8,6 +8,7 @@ import {
   Archive,
   BellRing,
   Inbox,
+  Sparkles,
   MessageCircleMore,
   RefreshCw,
   Search,
@@ -17,15 +18,24 @@ import {
 import { AppButton } from "../../components/common/AppButton";
 import { AppCard } from "../../components/common/AppCard";
 import { useCustomers } from "../customers/useCustomers";
+import type { CustomerInput } from "../customers/customerTypes";
 import NotificationQueuePanel from "./notifications/NotificationQueuePanel";
 import type { NotificationQueueItem } from "./notifications/notificationTypes";
 import { useNotificationQueue } from "./notifications/useNotificationQueue";
 import { useMessages } from "./useMessages";
+import NewLeadsPanel from "./leads/NewLeadsPanel";
+import { convertLead } from "./leads/leadService";
+import type { MessageLead } from "./leads/leadTypes";
+import { useLeads } from "./leads/useLeads";
+import { importLeadConversation } from "./messageService";
+
+import "./leads/leads.css";
 
 import "./messagesCenter.css";
 
 type MessagesWorkspace =
   | "inbox"
+  | "leads"
   | "notifications";
 
 const format = (value: string) =>
@@ -37,7 +47,8 @@ const format = (value: string) =>
   }).format(new Date(value));
 
 export function MessagesPage() {
-  const { customers } = useCustomers();
+  const { customers, save: saveCustomer, refresh: refreshCustomers } = useCustomers();
+  const { leads, unreadCount: unreadLeadCount, refresh: refreshLeads } = useLeads();
 
   const {
     threads,
@@ -148,6 +159,11 @@ export function MessagesPage() {
       return;
     }
 
+    if (workspace === "leads") {
+      refreshLeads();
+      return;
+    }
+
     refreshNotifications();
   }
 
@@ -182,6 +198,15 @@ export function MessagesPage() {
     );
 
     show("Notification sent.");
+  }
+
+  async function convertMessageLead(lead: MessageLead, input: CustomerInput) {
+    const customer = await saveCustomer(input);
+    await importLeadConversation(customer.id, lead);
+    convertLead(lead.id, customer.id);
+    await Promise.all([refreshCustomers(), refresh(), Promise.resolve(refreshLeads())]);
+    setWorkspace("inbox");
+    show("Lead converted and conversation moved to Inbox.");
   }
 
   async function submit(
@@ -288,6 +313,16 @@ export function MessagesPage() {
         </AppCard>
 
         <AppCard className="summary-card">
+          <Sparkles size={22} />
+
+          <div>
+            <span>New leads</span>
+            <strong>{leads.length}</strong>
+            <small>{unreadLeadCount} unread</small>
+          </div>
+        </AppCard>
+
+        <AppCard className="summary-card">
           <BellRing size={22} />
 
           <div>
@@ -343,6 +378,16 @@ export function MessagesPage() {
 
         <button
           type="button"
+          className={workspace === "leads" ? "is-active" : ""}
+          onClick={() => setWorkspace("leads")}
+        >
+          <Sparkles size={17} />
+          New Leads
+          {unreadLeadCount > 0 && <span>{unreadLeadCount}</span>}
+        </button>
+
+        <button
+          type="button"
           className={
             workspace ===
             "notifications"
@@ -366,7 +411,9 @@ export function MessagesPage() {
         </button>
       </nav>
 
-      {workspace ===
+      {workspace === "leads" ? (
+        <NewLeadsPanel onConvert={convertMessageLead} />
+      ) : workspace ===
       "notifications" ? (
         <AppCard className="messages-notification-workspace">
           <NotificationQueuePanel

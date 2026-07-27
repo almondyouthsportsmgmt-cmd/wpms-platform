@@ -11,6 +11,9 @@ import { AuthProvider } from "./auth/AuthContext";
 import { LiveProvider } from "./core/live/LiveProvider";
 
 import "./styles/globals.css";
+import "./features/checkout/checkoutIntegration.css";
+import "./features/checkout/checkoutRecordButtons.css";
+import "./features/checkout/checkoutRefreshConfirm.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {

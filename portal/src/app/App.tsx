@@ -1,4 +1,9 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import {
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
+
 import { ProtectedRoute } from "../auth/ProtectedRoute";
 import { MainLayout } from "../components/layout/MainLayout";
 import { LoginPage } from "../features/auth/LoginPage";
@@ -8,6 +13,7 @@ import { CustomerDetailPage } from "../features/customers/CustomerDetailPage";
 import { PetsPage } from "../features/pets/PetsPage";
 import { PetDetailPage } from "../features/pets/PetDetailPage";
 import { AppointmentsPage } from "../features/appointments/AppointmentsPage";
+import CalendarPage from "../features/calendar/CalendarPage";
 import { GroomingPage } from "../features/grooming/GroomingPage";
 import { BoardingPage } from "../features/boarding/BoardingPage";
 import { MessagesPage } from "../features/messages/MessagesPage";
@@ -27,38 +33,198 @@ import { RemindersPage } from "../features/reminders/RemindersPage";
 import { ClientFormsPage } from "../features/forms/ClientFormsPage";
 import { KennelMapPage } from "../features/kennels/KennelMapPage";
 import { CrmMarketingPage } from "../features/crm/CrmMarketingPage";
-import CalendarPage from "../features/calendar/CalendarPage";
+import {
+  CheckoutPage,
+  CheckoutSessionPage,
+} from "../features/checkout";
+
 export default function App() {
-  return <Routes>
-    <Route path="/login" element={<LoginPage/>}/>
-    <Route element={<ProtectedRoute/>}><Route element={<MainLayout/>}>
-      <Route index element={<DashboardPage/>}/>
-      <Route path="customers" element={<CustomersPage/>}/>
-      <Route path="customers/:id" element={<CustomerDetailPage/>}/>
-      <Route path="pets" element={<PetsPage/>}/>
-      <Route path="pets/:id" element={<PetDetailPage/>}/>
-      <Route path="calendar" element={<CalendarPage/>}/>
-      <Route path="appointments" element={<AppointmentsPage/>}/>
-      <Route path="grooming" element={<GroomingPage/>}/>
-      <Route path="boarding" element={<BoardingPage/>}/>
-      <Route path="messages" element={<MessagesPage/>}/>
-      <Route path="payments" element={<PaymentsPage/>}/>
-      <Route path="employees" element={<EmployeesPage/>}/>
-      <Route path="inventory" element={<InventoryPage/>}/>
-      <Route path="reports" element={<ReportsPage/>}/>
-      <Route path="settings" element={<SettingsPage/>}/>
-      <Route path="client-portal" element={<ClientPortalPage/>}/>
-      <Route path="ai-receptionist" element={<AiReceptionistPage/>}/>
-      <Route path="sms-integration" element={<SmsIntegrationPage/>}/>
-      <Route path="staff-mobile" element={<MobileStaffPage/>}/>
-      <Route path="pet-timeline" element={<PetTimelinePage/>}/>
-      <Route path="ai-scheduling" element={<AiSchedulingPage/>}/>
-      <Route path="memberships" element={<MembershipsPage/>}/>
-      <Route path="reminders" element={<RemindersPage/>}/>
-      <Route path="forms" element={<ClientFormsPage/>}/>
-      <Route path="kennel-map" element={<KennelMapPage/>}/>
-      <Route path="crm-marketing" element={<CrmMarketingPage/>}/>
-    </Route></Route>
-    <Route path="*" element={<Navigate to="/" replace/>}/>
-  </Routes>;
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={<LoginPage />}
+      />
+
+      <Route
+        element={<ProtectedRoute />}
+      >
+        <Route
+          element={<MainLayout />}
+        >
+          <Route
+            index
+            element={<DashboardPage />}
+          />
+
+          <Route
+            path="customers"
+            element={<CustomersPage />}
+          />
+
+          <Route
+            path="customers/:id"
+            element={
+              <CustomerDetailPage />
+            }
+          />
+
+          <Route
+            path="pets"
+            element={<PetsPage />}
+          />
+
+          <Route
+            path="pets/:id"
+            element={<PetDetailPage />}
+          />
+
+          <Route
+            path="calendar"
+            element={<CalendarPage />}
+          />
+
+          <Route
+            path="appointments"
+            element={
+              <AppointmentsPage />
+            }
+          />
+
+          <Route
+            path="grooming"
+            element={<GroomingPage />}
+          />
+
+          <Route
+            path="boarding"
+            element={<BoardingPage />}
+          />
+
+          <Route
+            path="messages"
+            element={<MessagesPage />}
+          />
+
+          <Route
+            path="payments"
+            element={<PaymentsPage />}
+          />
+
+          <Route
+            path="checkout"
+            element={<CheckoutPage />}
+          />
+
+          <Route
+            path="checkout/:sessionId"
+            element={
+              <CheckoutSessionPage />
+            }
+          />
+
+          <Route
+            path="employees"
+            element={<EmployeesPage />}
+          />
+
+          <Route
+            path="inventory"
+            element={<InventoryPage />}
+          />
+
+          <Route
+            path="reports"
+            element={<ReportsPage />}
+          />
+
+          <Route
+            path="settings"
+            element={<SettingsPage />}
+          />
+
+          <Route
+            path="client-portal"
+            element={
+              <ClientPortalPage />
+            }
+          />
+
+          <Route
+            path="ai-receptionist"
+            element={
+              <AiReceptionistPage />
+            }
+          />
+
+          <Route
+            path="sms-integration"
+            element={
+              <SmsIntegrationPage />
+            }
+          />
+
+          <Route
+            path="staff-mobile"
+            element={
+              <MobileStaffPage />
+            }
+          />
+
+          <Route
+            path="pet-timeline"
+            element={
+              <PetTimelinePage />
+            }
+          />
+
+          <Route
+            path="ai-scheduling"
+            element={
+              <AiSchedulingPage />
+            }
+          />
+
+          <Route
+            path="memberships"
+            element={
+              <MembershipsPage />
+            }
+          />
+
+          <Route
+            path="reminders"
+            element={<RemindersPage />}
+          />
+
+          <Route
+            path="forms"
+            element={<ClientFormsPage />}
+          />
+
+          <Route
+            path="kennel-map"
+            element={<KennelMapPage />}
+          />
+
+          <Route
+            path="crm-marketing"
+            element={
+              <CrmMarketingPage />
+            }
+          />
+        </Route>
+      </Route>
+
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="/"
+            replace
+          />
+        }
+      />
+    </Routes>
+  );
 }

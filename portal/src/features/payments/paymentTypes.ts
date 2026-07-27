@@ -1,4 +1,4 @@
-export type PaymentMethod = "Cash" | "Credit Card" | "Debit Card" | "Check" | "Gift Card";
+export type PaymentMethod = "Cash" | "Credit Card" | "Debit Card" | "Check" | "Square" | "Gift Card" | "Store Credit" | "Other";
 export type InvoiceStatus = "Open" | "Partially Paid" | "Paid" | "Voided";
 export type InvoiceLineType = "Grooming" | "Boarding" | "Retail" | "Other";
 

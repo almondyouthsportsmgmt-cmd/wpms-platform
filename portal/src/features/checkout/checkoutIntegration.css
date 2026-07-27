@@ -1,0 +1,122 @@
+.checkout-related-modal {
+  width: min(760px, calc(100vw - 32px));
+  max-height: min(820px, 92vh);
+  overflow: auto;
+}
+
+.checkout-related-content {
+  display: grid;
+  gap: 16px;
+  padding: 20px 22px;
+}
+
+.checkout-related-content > p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.checkout-related-primary,
+.checkout-related-item {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.checkout-related-primary {
+  background: rgba(
+    122,
+    190,
+    44,
+    0.09
+  );
+}
+
+.checkout-related-primary > div,
+.checkout-related-item > div {
+  min-width: 0;
+}
+
+.checkout-related-primary strong,
+.checkout-related-primary small,
+.checkout-related-item strong,
+.checkout-related-item small {
+  display: block;
+}
+
+.checkout-related-primary small,
+.checkout-related-item small {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.checkout-related-type {
+  display: inline-block;
+  margin-bottom: 5px;
+  color: var(--brand);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.checkout-related-list {
+  display: grid;
+  gap: 10px;
+}
+
+.checkout-related-item {
+  grid-template-columns:
+    auto minmax(0, 1fr) auto;
+  cursor: pointer;
+}
+
+.checkout-related-item:hover {
+  border-color: var(--brand);
+  background: rgba(
+    122,
+    190,
+    44,
+    0.05
+  );
+}
+
+.checkout-related-item.is-existing {
+  opacity: 0.75;
+  cursor: default;
+}
+
+.checkout-related-price {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  font-weight: 800;
+}
+
+.checkout-existing-link {
+  border: 0;
+  background: transparent;
+  color: var(--brand);
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.checkout-related-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 11px;
+  background: rgba(
+    122,
+    190,
+    44,
+    0.08
+  );
+  color: var(--muted);
+}

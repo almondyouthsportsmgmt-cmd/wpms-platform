@@ -51,3 +51,64 @@ export async function sendMessage(customerId:string, body:string, threadId?:stri
 }
 export async function markRead(threadId:string){if(!isSupabaseConfigured){writeThreads(readThreads().map(t=>t.id===threadId?{...t,unreadCount:0}:t));return;}const {error}=await supabase.from("message_threads").update({unread_count:0}).eq("id",threadId);if(error)throw error;}
 export async function archiveThread(threadId:string){if(!isSupabaseConfigured){writeThreads(readThreads().map(t=>t.id===threadId?{...t,isArchived:true}:t));return;}const {error}=await supabase.from("message_threads").update({is_archived:true}).eq("id",threadId);if(error)throw error;}
+
+
+export async function receiveInboundMessage(
+  customerId: string,
+  body: string,
+  channel: "SMS" | "Email" = "SMS",
+): Promise<{ thread: MessageThread; message: Message }> {
+  const clean = body.trim();
+  if (!clean) throw new Error("Message cannot be empty.");
+  const stamp = new Date().toISOString();
+
+  if (!isSupabaseConfigured) {
+    const threads = readThreads();
+    let thread = threads.find((item) => item.customerId === customerId && !item.isArchived);
+    if (!thread) {
+      thread = { id: crypto.randomUUID(), customerId, subject: `${channel} conversation`, lastMessageAt: stamp, unreadCount: 1, isArchived: false, createdAt: stamp, updatedAt: stamp };
+      threads.push(thread);
+    } else {
+      thread = { ...thread, lastMessageAt: stamp, updatedAt: stamp, unreadCount: thread.unreadCount + 1 };
+    }
+    const message: Message = { id: crypto.randomUUID(), threadId: thread.id, customerId, direction: "Inbound", body: clean, status: "Received", sentAt: stamp, createdAt: stamp };
+    writeThreads(threads.map((item) => item.id === thread!.id ? thread! : item));
+    writeMessages([...readMessages(), message]);
+    return { thread, message };
+  }
+
+  const { data: existingData, error: existingError } = await supabase.from("message_threads").select("*").eq("customer_id", customerId).eq("is_archived", false).order("last_message_at", { ascending: false }).limit(1).maybeSingle();
+  if (existingError) throw existingError;
+  let thread = existingData ? threadFromRow(existingData) : null;
+  if (!thread) {
+    const { data, error } = await supabase.from("message_threads").insert({ customer_id: customerId, subject: `${channel} conversation`, unread_count: 1, last_message_at: stamp }).select("*").single();
+    if (error) throw error;
+    thread = threadFromRow(data);
+  } else {
+    const { data, error } = await supabase.from("message_threads").update({ unread_count: thread.unreadCount + 1, last_message_at: stamp, updated_at: stamp }).eq("id", thread.id).select("*").single();
+    if (error) throw error;
+    thread = threadFromRow(data);
+  }
+  const { data, error } = await supabase.from("messages").insert({ thread_id: thread.id, customer_id: customerId, direction: "Inbound", body: clean, status: "Received", sent_at: stamp }).select("*").single();
+  if (error) throw error;
+  return { thread, message: messageFromRow(data) };
+}
+
+export async function importLeadConversation(customerId: string, lead: { channel: "SMS" | "Email"; messages: Array<{ direction: "Inbound" | "Outbound"; body: string; sentAt: string; status: string }> }) {
+  if (!lead.messages.length) return null;
+  if (!isSupabaseConfigured) {
+    const stamp = lead.messages.at(-1)!.sentAt;
+    const thread: MessageThread = { id: crypto.randomUUID(), customerId, subject: `${lead.channel} lead conversation`, lastMessageAt: stamp, unreadCount: 0, isArchived: false, createdAt: lead.messages[0].sentAt, updatedAt: stamp };
+    const converted: Message[] = lead.messages.map((item) => ({ id: crypto.randomUUID(), threadId: thread.id, customerId, direction: item.direction, body: item.body, status: item.direction === "Inbound" ? "Received" : "Delivered", sentAt: item.sentAt, createdAt: item.sentAt }));
+    writeThreads([thread, ...readThreads()]);
+    writeMessages([...readMessages(), ...converted]);
+    return thread;
+  }
+  const stamp = lead.messages.at(-1)!.sentAt;
+  const { data: threadData, error: threadError } = await supabase.from("message_threads").insert({ customer_id: customerId, subject: `${lead.channel} lead conversation`, last_message_at: stamp, unread_count: 0 }).select("*").single();
+  if (threadError) throw threadError;
+  const rows = lead.messages.map((item) => ({ thread_id: threadData.id, customer_id: customerId, direction: item.direction, body: item.body, status: item.direction === "Inbound" ? "Received" : "Delivered", sent_at: item.sentAt, created_at: item.sentAt }));
+  const { error } = await supabase.from("messages").insert(rows);
+  if (error) throw error;
+  return threadFromRow(threadData);
+}

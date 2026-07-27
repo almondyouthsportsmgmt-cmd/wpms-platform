@@ -1,0 +1,139 @@
+.checkout-refresh-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(
+    245,
+    158,
+    11,
+    0.45
+  );
+  border-radius: 14px;
+  background: rgba(
+    245,
+    158,
+    11,
+    0.08
+  );
+}
+
+.checkout-refresh-panel.is-current {
+  grid-template-columns:
+    auto minmax(0, 1fr);
+  align-items: center;
+  border-color: rgba(
+    34,
+    197,
+    94,
+    0.35
+  );
+  background: rgba(
+    34,
+    197,
+    94,
+    0.08
+  );
+}
+
+.checkout-refresh-panel.is-current strong,
+.checkout-refresh-panel.is-current span {
+  display: block;
+}
+
+.checkout-refresh-panel.is-current span {
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+.checkout-refresh-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.checkout-refresh-header h2 {
+  margin: 4px 0 0;
+}
+
+.checkout-refresh-header p {
+  margin: 5px 0 0;
+  color: var(--muted);
+}
+
+.checkout-refresh-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.checkout-refresh-list {
+  display: grid;
+  gap: 10px;
+}
+
+.checkout-refresh-item {
+  display: grid;
+  grid-template-columns:
+    36px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface, #fff);
+}
+
+.checkout-refresh-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: rgba(
+    245,
+    158,
+    11,
+    0.13
+  );
+  color: #d97706;
+}
+
+.checkout-refresh-item strong,
+.checkout-refresh-item span {
+  display: block;
+}
+
+.checkout-refresh-item span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.checkout-refresh-item ul {
+  margin: 9px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.checkout-refresh-item.is-missing {
+  border-color: rgba(
+    239,
+    68,
+    68,
+    0.35
+  );
+}
+
+@media (max-width: 700px) {
+  .checkout-refresh-item {
+    grid-template-columns:
+      34px minmax(0, 1fr);
+  }
+
+  .checkout-refresh-item > button {
+    grid-column: 1 / -1;
+  }
+}

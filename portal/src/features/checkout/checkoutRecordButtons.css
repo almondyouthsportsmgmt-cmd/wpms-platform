@@ -1,0 +1,93 @@
+.record-checkout-button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  border-radius: 11px;
+  white-space: nowrap;
+}
+
+.record-checkout-ready {
+  background: var(--brand);
+  color: #101710;
+}
+
+.record-checkout-in-checkout {
+  background: #2563eb;
+  color: #fff;
+}
+
+.record-checkout-paid {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: inherit;
+}
+
+.record-checkout-error { margin-top: 10px; }
+
+.checkout-readiness {
+  display: inline-grid;
+  gap: 1px;
+  min-width: 88px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  line-height: 1.15;
+}
+
+.checkout-readiness > span {
+  font-size: .56rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  opacity: .72;
+  text-transform: uppercase;
+}
+
+.checkout-readiness > strong {
+  font-size: .68rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.checkout-state-ready { background: rgba(34,197,94,.14); color:#31c764; }
+.checkout-state-progress { background: rgba(59,130,246,.14); color:#60a5fa; }
+.checkout-state-paid { background: rgba(122,190,44,.18); color:#8dde45; }
+
+.appointment-billing-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 9px;
+}
+
+.appointment-billing-line > small {
+  margin: 0;
+  color: var(--muted);
+}
+
+.boarding-billing-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.boarding-billing-state > small {
+  color: var(--muted);
+  font-size: .65rem;
+}
+
+.boarding-status-group,.boarding-card-actions {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+@media (max-width:760px) {
+  .record-checkout-button { width:100%; }
+  .boarding-card-footer { align-items:stretch; flex-direction:column; }
+  .boarding-card-actions { width:100%; }
+}

@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 const items = [
   ["/","Dashboard",Home],["/calendar","Calendar",CalendarDays],["/appointments","Appointments",CalendarRange],
   ["/grooming","Grooming",Scissors],["/boarding","Boarding",Hotel],["/kennel-map","Kennel Map",MapPinned],["/pets","Pets",PawPrint],
-  ["/customers","Customers",Users],["/crm-marketing","CRM & Marketing",Megaphone],["/messages","Messages",MessageSquare],["/payments","Payments",CreditCard],
+  ["/customers","Customers",Users],["/crm-marketing","CRM & Marketing",Megaphone],["/messages","Messages",MessageSquare],["/checkout","Front Desk POS",CreditCard],["/payments","Payments",CreditCard],
   ["/employees","Employees",ShieldCheck],["/inventory","Inventory",Package],["/reports","Reports",BarChart3],
   ["/memberships","Memberships",Crown],["/reminders","Reminders",BellRing],["/forms","Client Forms",FileSignature],["/settings","Settings",Settings],["/ai-scheduling","AI Scheduling",CalendarSearch],["/staff-mobile","Staff Mobile",TabletSmartphone],["/sms-integration","Two-Way SMS",Radio],["/client-portal","Client Portal",Smartphone],["/ai-receptionist","AI Receptionist",Bot]
 ] as const;

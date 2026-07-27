@@ -4,6 +4,9 @@ import { AppButton } from "../../components/common/AppButton";
 import { AppCard } from "../../components/common/AppCard";
 import { useCustomers } from "../customers/useCustomers";
 import { usePets } from "../pets/usePets";
+import { useAppointments } from "../appointments/useAppointments";
+import { BoardingCheckoutButton } from "./checkout";
+import { useCheckout } from "../checkout";
 import { BoardingFormModal } from "./BoardingFormModal";
 import type { BoardingStay } from "./boardingTypes";
 import { useBoarding } from "./useBoarding";
@@ -13,6 +16,8 @@ const statusClass = (value: string) => value.toLowerCase().replaceAll(" ", "-");
 export function BoardingPage() {
   const { customers } = useCustomers();
   const { pets } = usePets();
+  const { appointments } = useAppointments();
+  const { sessions: checkoutSessions } = useCheckout();
   const { stays, loading, error, refresh, save, setStatus } = useBoarding();
   const [query, setQuery] = useState("");
   const [status, setStatusFilter] = useState("All");
@@ -53,6 +58,26 @@ export function BoardingPage() {
     show(`Boarding stay moved to ${next}.`);
   }
 
+  function checkoutState(stayId: string, stayStatus: BoardingStay["status"]) {
+    const session = checkoutSessions.find((item) =>
+      item.lineItems.some((line) => line.sourceType === "Boarding" && line.sourceId === stayId),
+    );
+
+    if (session?.status === "Paid" || session?.paymentStatus === "Paid") {
+      return { label: "Paid", shortLabel: "Paid", className: "checkout-state-paid", sessionId: session.id, invoiceId: session.invoiceId };
+    }
+
+    if (session && ["Open", "Ready"].includes(session.status)) {
+      return { label: "In Checkout", shortLabel: "In Checkout", className: "checkout-state-progress", sessionId: session.id, invoiceId: session.invoiceId };
+    }
+
+    if (["Ready for Checkout", "Checked Out"].includes(stayStatus)) {
+      return { label: "Ready for Checkout", shortLabel: "Ready", className: "checkout-state-ready", sessionId: undefined, invoiceId: undefined };
+    }
+
+    return null;
+  }
+
   return <div className="boarding-page">
     <section className="page-toolbar"><div className="page-head"><span className="eyebrow">Daily operations</span><h1>Boarding</h1><p>Manage reservations, care instructions, kennel assignments, and check-outs.</p></div><div className="toolbar-actions"><AppButton variant="secondary" onClick={() => void refresh()}><RefreshCw size={17}/> Refresh</AppButton><AppButton onClick={() => { setEditing(null); setModalOpen(true); }}>+ New stay</AppButton></div></section>
     {notice && <div className="success-notice">{notice}</div>}
@@ -74,11 +99,21 @@ export function BoardingPage() {
       const customer = customerMap.get(stay.customerId);
       const nights = Math.max(1, Math.ceil((new Date(stay.checkOutDate).getTime() - new Date(stay.checkInDate).getTime()) / 86400000));
       const estimate = nights * stay.dailyRate;
+      const billing = checkoutState(stay.id, stay.status);
       return <AppCard className="boarding-card-item" key={stay.id}>
         <div className="boarding-card-head"><div className="boarding-pet"><div className="boarding-avatar">{pet?.species === "Cat" ? "🐈" : "🐕"}</div><div><h3>{pet?.name ?? "Pet"}</h3><span>{pet?.breed || "Breed unavailable"} · {customer ? `${customer.firstName} ${customer.lastName}` : "Owner unavailable"}</span></div></div><button className="icon-button" onClick={() => { setEditing(stay); setModalOpen(true); }} aria-label="Edit boarding stay"><Pencil size={17}/></button></div>
         <div className="boarding-stay-meta"><div><span>Check in</span><strong>{stay.checkInDate} · {stay.checkInTime}</strong></div><div><span>Check out</span><strong>{stay.checkOutDate} · {stay.checkOutTime}</strong></div><div><span>Kennel</span><strong>{stay.kennelName || "Unassigned"}</strong></div><div><span>Estimate</span><strong>${estimate.toFixed(2)}</strong></div></div>
         <div className="boarding-care-list"><span>🍽 {stay.feedingFrequency}</span>{stay.medicationInstructions && <span>💊 Medication</span>}{stay.photoUpdatesEnabled && <span>📷 Photo updates</span>}{stay.veterinarianReleaseConfirmed && <span>✅ Vet release</span>}</div>
-        <div className="boarding-card-footer"><span className={`status-chip status-${statusClass(stay.status)}`}>{stay.status}</span>{!["Checked Out","Cancelled"].includes(stay.status) && <AppButton variant="secondary" onClick={() => void advance(stay)}>Advance status</AppButton>}</div>
+        <div className="boarding-card-footer">
+          <div className="boarding-status-group">
+            <span className={`status-chip status-${statusClass(stay.status)}`}>{stay.status}</span>
+            {billing && <div className="boarding-billing-state"><span className={`checkout-readiness ${billing.className}`}><span>Billing</span><strong>{billing.shortLabel}</strong></span><small>{billing.invoiceId ? `Invoice ${billing.invoiceId.slice(0, 8)}` : billing.sessionId ? `Checkout ${billing.sessionId.slice(0, 8)}` : "Not invoiced"}</small></div>}
+          </div>
+          <div className="boarding-card-actions">
+            {!["Checked Out","Cancelled"].includes(stay.status) && <AppButton variant="secondary" onClick={() => void advance(stay)}>Advance status</AppButton>}
+            {billing && <BoardingCheckoutButton stay={stay} appointments={appointments} boardingStays={stays} billingState={billing.shortLabel as "Ready" | "In Checkout" | "Paid"} existingSessionId={billing.sessionId} />}
+          </div>
+        </div>
       </AppCard>;
     })}</section>}
     <BoardingFormModal open={modalOpen} customers={customers} pets={pets} stay={editing} onClose={() => setModalOpen(false)} onSave={handleSave} />
