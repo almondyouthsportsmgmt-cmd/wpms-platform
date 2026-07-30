@@ -4,12 +4,12 @@ import { AppButton } from "../../components/common/AppButton";
 import { AppCard } from "../../components/common/AppCard";
 import { useCustomers } from "../customers/useCustomers";
 import { usePets } from "../pets/usePets";
-import { useBoarding } from "../boarding/useBoarding";
-import { GroomingCheckoutButton } from "../grooming/checkout";
-import { useCheckout } from "../checkout";
 import { AppointmentFormModal } from "./AppointmentFormModal";
 import type { Appointment, AppointmentInput, AppointmentStatus } from "./appointmentTypes";
 import { useAppointments } from "./useAppointments";
+import PendingAppointmentReviewPanel from "./requests/PendingAppointmentReviewPanel";
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 
 const workflowStatuses: AppointmentStatus[] = ["Scheduled", "Confirmed", "Checked In", "In Service", "Ready for Pickup", "Completed", "Cancelled", "No Show"];
 const statusClass = (status: string) => status.toLowerCase().replaceAll(" ", "-");
@@ -18,8 +18,6 @@ export function AppointmentsPage() {
   const { appointments, loading, error, refresh, save, setStatus } = useAppointments();
   const { customers } = useCustomers();
   const { pets } = usePets();
-  const { stays: boardingStays } = useBoarding();
-  const { sessions: checkoutSessions } = useCheckout();
   const [query, setQuery] = useState("");
   const [status, setStatusFilter] = useState<"All" | AppointmentStatus>("All");
   const [dateScope, setDateScope] = useState<"Upcoming" | "Today" | "All">("Upcoming");
@@ -30,6 +28,7 @@ export function AppointmentsPage() {
   const customerMap = useMemo(() => new Map(customers.map((item) => [item.id, item])), [customers]);
   const petMap = useMemo(() => new Map(pets.map((item) => [item.id, item])), [pets]);
   const today = new Date().toISOString().slice(0, 10);
+  const location = useLocation();
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -43,6 +42,29 @@ export function AppointmentsPage() {
       return matchesSearch && matchesStatus && matchesDate;
     });
   }, [appointments, customerMap, dateScope, petMap, query, status, today]);
+
+useEffect(() => {
+
+    const state = location.state as
+        | {
+              openPendingReview?: boolean;
+              requestId?: string;
+          }
+        | undefined;
+
+    if (!state?.openPendingReview) {
+        return;
+    }
+
+    setPendingReviewOpen(true);
+
+    if (state.requestId) {
+        setSelectedRequestId(state.requestId);
+    }
+
+    window.history.replaceState({}, "");
+
+}, [location]);
 
   async function handleSave(input: AppointmentInput, id?: string) {
     await save(input, id);
@@ -61,29 +83,10 @@ export function AppointmentsPage() {
   const completedToday = appointments.filter((item) => item.appointmentDate === today && item.status === "Completed").length;
   const cancelled = appointments.filter((item) => ["Cancelled", "No Show"].includes(item.status)).length;
 
-  function checkoutState(appointmentId: string, appointmentStatus: AppointmentStatus) {
-    const session = checkoutSessions.find((item) =>
-      item.lineItems.some((line) => line.sourceType === "Grooming" && line.sourceId === appointmentId),
-    );
-
-    if (session?.status === "Paid" || session?.paymentStatus === "Paid") {
-      return { label: "Paid", shortLabel: "Paid", className: "checkout-state-paid", sessionId: session.id, invoiceId: session.invoiceId };
-    }
-
-    if (session && ["Open", "Ready"].includes(session.status)) {
-      return { label: "In Checkout", shortLabel: "In Checkout", className: "checkout-state-progress", sessionId: session.id, invoiceId: session.invoiceId };
-    }
-
-    if (["Ready for Pickup", "Completed"].includes(appointmentStatus)) {
-      return { label: "Ready for Checkout", shortLabel: "Ready", className: "checkout-state-ready", sessionId: undefined, invoiceId: undefined };
-    }
-
-    return null;
-  }
-
   return <div className="appointments-page">
     <section className="page-toolbar"><div className="page-head"><span className="eyebrow">Shop calendar</span><h1>Appointments</h1><p>Book services, assign staff, track arrivals, and move pets through the day.</p></div><AppButton onClick={() => { setEditing(null); setModalOpen(true); }}><Plus size={18}/> New appointment</AppButton></section>
     {notice && <div className="success-notice">{notice}</div>}
+    <PendingAppointmentReviewPanel onApproved={() => void refresh()} />
     <section className="appointment-summary-grid">
       <AppCard className="summary-card"><CalendarDays size={22}/><div><span>Today</span><strong>{todayCount}</strong></div></AppCard>
       <AppCard className="summary-card"><Clock3 size={22}/><div><span>In progress</span><strong>{activeCount}</strong></div></AppCard>
@@ -98,20 +101,23 @@ export function AppointmentsPage() {
       {!loading && !error && filtered.length > 0 && <div className="appointment-day-list">{filtered.map((appointment) => {
         const customer = customerMap.get(appointment.customerId);
         const pet = petMap.get(appointment.petId);
-        const billing = checkoutState(appointment.id, appointment.status);
         return <article className="appointment-list-card" key={appointment.id}>
           <div className="appointment-date-box"><strong>{new Date(`${appointment.appointmentDate}T12:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</strong><span>{appointment.startTime}</span></div>
           <div className="appointment-pet-avatar">{pet?.species === "Cat" ? "🐈" : "🐕"}</div>
-          <div className="appointment-main-copy"><div className="appointment-title-line"><strong>{pet?.name ?? "Pet unavailable"}</strong><span className={`appointment-status status-${statusClass(appointment.status)}`}>{appointment.status}</span></div><span>{appointment.serviceName} · {appointment.appointmentType}</span><small>{customer ? `${customer.firstName} ${customer.lastName}` : "Customer unavailable"}{appointment.assignedStaff ? ` · ${appointment.assignedStaff}` : ""}</small>{billing && <div className="appointment-billing-line"><span className={`checkout-readiness ${billing.className}`}><span>Billing</span><strong>{billing.shortLabel}</strong></span><small>{billing.invoiceId ? `Invoice ${billing.invoiceId.slice(0, 8)}` : billing.sessionId ? `Checkout ${billing.sessionId.slice(0, 8)}` : "Not invoiced"}</small></div>}</div>
+          <div className="appointment-main-copy"><div className="appointment-title-line"><strong>{pet?.name ?? "Pet unavailable"}</strong><span className={`appointment-status status-${statusClass(appointment.status)}`}>{appointment.status}</span></div><span>{appointment.serviceName} · {appointment.appointmentType}</span><small>{customer ? `${customer.firstName} ${customer.lastName}` : "Customer unavailable"}{appointment.assignedStaff ? ` · ${appointment.assignedStaff}` : ""}</small></div>
           <div className="appointment-time-range"><strong>{appointment.startTime}–{appointment.endTime}</strong><span>{appointment.priceEstimate === null ? "No estimate" : `$${appointment.priceEstimate.toFixed(2)}`}</span></div>
-          <div className="appointment-row-actions">
-            <select aria-label={`Update status for ${pet?.name ?? "appointment"}`} value={appointment.status} onChange={(e) => void quickStatus(appointment.id, e.target.value as AppointmentStatus)}>{workflowStatuses.map((item) => <option key={item}>{item}</option>)}</select>
-            <button className="icon-button" aria-label="Edit appointment" onClick={() => { setEditing(appointment); setModalOpen(true); }}><Pencil size={16}/></button>
-            {billing && <GroomingCheckoutButton appointment={appointment} appointments={appointments} boardingStays={boardingStays} billingState={billing.shortLabel as "Ready" | "In Checkout" | "Paid"} existingSessionId={billing.sessionId} />}
-          </div>
+          <div className="appointment-row-actions"><select aria-label={`Update status for ${pet?.name ?? "appointment"}`} value={appointment.status} onChange={(e) => void quickStatus(appointment.id, e.target.value as AppointmentStatus)}>{workflowStatuses.map((item) => <option key={item}>{item}</option>)}</select><button className="icon-button" aria-label="Edit appointment" onClick={() => { setEditing(appointment); setModalOpen(true); }}><Pencil size={16}/></button></div>
         </article>;
       })}</div>}
     </AppCard>
     <AppointmentFormModal appointment={editing} customers={customers} pets={pets} open={modalOpen} onClose={() => setModalOpen(false)} onSave={handleSave}/>
   </div>;
 }
+function setPendingReviewOpen(arg0: boolean) {
+  throw new Error("Function not implemented.");
+}
+
+function setSelectedRequestId(requestId: string) {
+  throw new Error("Function not implemented.");
+}
+

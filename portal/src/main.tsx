@@ -9,11 +9,11 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./app/App";
 import { AuthProvider } from "./auth/AuthContext";
 import { LiveProvider } from "./core/live/LiveProvider";
+import { installNotificationSounds } from "./core/notifications/notificationSounds";
 
 import "./styles/globals.css";
-import "./features/checkout/checkoutIntegration.css";
-import "./features/checkout/checkoutRecordButtons.css";
-import "./features/checkout/checkoutRefreshConfirm.css";
+
+installNotificationSounds();
 
 const queryClient = new QueryClient({
   defaultOptions: {

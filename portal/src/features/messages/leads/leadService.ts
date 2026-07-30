@@ -139,6 +139,7 @@ export async function routeIncomingContactMessage(input: IncomingContactMessage)
   };
 
   saveLead(lead);
+  window.dispatchEvent(new CustomEvent("wpms:message-received", { detail: message }));
   return { kind: "lead" as const, lead };
 }
 

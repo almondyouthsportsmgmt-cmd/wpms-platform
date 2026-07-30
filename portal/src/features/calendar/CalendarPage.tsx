@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   CalendarDays,
   ChevronLeft,
@@ -7,8 +8,6 @@ import {
   Filter,
   RefreshCw,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-
 import CalendarHoursModal from "./components/CalendarHoursModal";
 import DayCalendar from "./components/DayCalendar";
 import EventDetailsDrawer from "./components/EventDetailsDrawer";
@@ -29,6 +28,7 @@ import type { CompletedCalendarMove } from "./calendarMoveTypes";
 import type { ScheduleEvent } from "../scheduling/schedulingTypes";
 
 import "./calendar.css";
+
 
 function heading(date: Date, view: CalendarView) {
   if (view === "month") {
@@ -55,7 +55,6 @@ function heading(date: Date, view: CalendarView) {
 }
 
 export default function CalendarPage() {
-  const navigate = useNavigate();
   const {
     view,
     setView,
@@ -95,7 +94,7 @@ export default function CalendarPage() {
       setNoticeMove(move);
     },
   );
-
+const navigate = useNavigate();
   const resources = useMemo(() => {
     const map = new Map<string, string>();
 
@@ -383,7 +382,23 @@ export default function CalendarPage() {
               events={events}
               resources={resources}
               settings={settings}
-              onEventClick={setSelectedEvent}
+              onEventClick={(event) => {
+
+    if (event.id.startsWith("appointment-request-")) {
+
+        navigate("/appointments", {
+            state: {
+                openPendingReview: true,
+                requestId: event.referenceId,
+            },
+        });
+
+        return;
+    }
+
+    setSelectedEvent(event);
+
+}}
               onMove={moveEvent}
               onMoveError={setMoveError}
             />
@@ -394,7 +409,23 @@ export default function CalendarPage() {
               weekStart={selectedDate}
               events={events}
               settings={settings}
-              onEventClick={setSelectedEvent}
+              onEventClick={(event) => {
+
+    if (event.id.startsWith("appointment-request-")) {
+
+        navigate("/appointments", {
+            state: {
+                openPendingReview: true,
+                requestId: event.referenceId,
+            },
+        });
+
+        return;
+    }
+
+    setSelectedEvent(event);
+
+}}
               onMove={moveEvent}
               onMoveError={setMoveError}
             />
@@ -404,7 +435,23 @@ export default function CalendarPage() {
             <MonthCalendar
               month={selectedDate}
               events={events}
-              onEventClick={setSelectedEvent}
+              onEventClick={(event) => {
+
+    if (event.id.startsWith("appointment-request-")) {
+
+        navigate("/appointments", {
+            state: {
+                openPendingReview: true,
+                requestId: event.referenceId,
+            },
+        });
+
+        return;
+    }
+
+    setSelectedEvent(event);
+
+}}
               onMove={moveEvent}
               onMoveError={setMoveError}
             />

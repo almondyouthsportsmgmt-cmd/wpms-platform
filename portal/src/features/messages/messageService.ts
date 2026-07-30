@@ -74,6 +74,7 @@ export async function receiveInboundMessage(
     const message: Message = { id: crypto.randomUUID(), threadId: thread.id, customerId, direction: "Inbound", body: clean, status: "Received", sentAt: stamp, createdAt: stamp };
     writeThreads(threads.map((item) => item.id === thread!.id ? thread! : item));
     writeMessages([...readMessages(), message]);
+    window.dispatchEvent(new CustomEvent("wpms:message-received", { detail: message }));
     return { thread, message };
   }
 
@@ -91,7 +92,9 @@ export async function receiveInboundMessage(
   }
   const { data, error } = await supabase.from("messages").insert({ thread_id: thread.id, customer_id: customerId, direction: "Inbound", body: clean, status: "Received", sent_at: stamp }).select("*").single();
   if (error) throw error;
-  return { thread, message: messageFromRow(data) };
+  const message = messageFromRow(data);
+  window.dispatchEvent(new CustomEvent("wpms:message-received", { detail: message }));
+  return { thread, message };
 }
 
 export async function importLeadConversation(customerId: string, lead: { channel: "SMS" | "Email"; messages: Array<{ direction: "Inbound" | "Outbound"; body: string; sentAt: string; status: string }> }) {

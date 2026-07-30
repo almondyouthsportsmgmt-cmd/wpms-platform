@@ -1,7 +1,16 @@
-import { useCallback, useMemo, useState } from "react";
+import {
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
+
 import { useAppointments } from "../appointments/useAppointments";
+import { useAppointmentRequests } from "../appointments/requests/useAppointmentRequests";
 import { useBoarding } from "../boarding/useBoarding";
+
+import type { AppointmentRequest } from "../appointments/requests/appointmentRequestTypes";
 import type { ScheduleEvent } from "../scheduling/schedulingTypes";
+
 import type {
   CalendarFilter,
   CalendarView,
@@ -14,37 +23,63 @@ const DEFAULT_FILTERS: CalendarFilter = {
   showCancelled: false,
 };
 
-function appointmentStatus(status: string): ScheduleEvent["status"] {
+function appointmentStatus(
+  status: string,
+): ScheduleEvent["status"] {
   switch (status) {
     case "Scheduled":
       return "pending";
+
     case "Checked In":
       return "checked-in";
+
     case "Completed":
       return "completed";
+
     case "Cancelled":
     case "No Show":
       return "cancelled";
+
     default:
       return "confirmed";
   }
 }
 
-function boardingStatus(status: string): ScheduleEvent["status"] {
+function appointmentRequestStatus(
+  request: AppointmentRequest,
+): ScheduleEvent["status"] {
+  if (request.status === "Awaiting Customer") {
+    return "awaiting-customer";
+  }
+
+  return "pending";
+}
+
+function boardingStatus(
+  status: string,
+): ScheduleEvent["status"] {
   switch (status) {
     case "Reserved":
       return "pending";
+
     case "Checked Out":
       return "completed";
+
     case "Cancelled":
       return "cancelled";
+
     default:
       return "confirmed";
   }
 }
 
-function dateTime(date: string, time: string) {
-  return `${date}T${time || "00:00"}:00`;
+function dateTime(
+  date: string,
+  time: string,
+) {
+  const normalizedTime = time || "00:00";
+
+  return `${date}T${normalizedTime}:00`;
 }
 
 function overlaps(
@@ -54,25 +89,43 @@ function overlaps(
 ) {
   const eventStart = new Date(event.start);
   const eventEnd = new Date(event.end);
+
   return eventStart < end && eventEnd > start;
 }
 
-function rangeFor(view: CalendarView, date: Date) {
+function rangeFor(
+  view: CalendarView,
+  date: Date,
+) {
   if (view === "day") {
     const start = new Date(date);
+
     start.setHours(0, 0, 0, 0);
+
     const end = new Date(start);
+
     end.setDate(end.getDate() + 1);
-    return { start, end };
+
+    return {
+      start,
+      end,
+    };
   }
 
   if (view === "week") {
     const start = new Date(date);
+
     start.setHours(0, 0, 0, 0);
     start.setDate(start.getDate() - start.getDay());
+
     const end = new Date(start);
+
     end.setDate(end.getDate() + 7);
-    return { start, end };
+
+    return {
+      start,
+      end,
+    };
   }
 
   const start = new Date(
@@ -80,12 +133,61 @@ function rangeFor(view: CalendarView, date: Date) {
     date.getMonth(),
     1,
   );
+
   const end = new Date(
     date.getFullYear(),
     date.getMonth() + 1,
     1,
   );
-  return { start, end };
+
+  return {
+    start,
+    end,
+  };
+}
+
+function requestTitle(
+  request: AppointmentRequest,
+) {
+  if (request.serviceName) {
+    return request.serviceName;
+  }
+
+  if (request.requesterName) {
+    return `${request.requesterName} appointment request`;
+  }
+
+  return "Appointment request";
+}
+
+function requestNotes(
+  request: AppointmentRequest,
+) {
+  return [
+    request.status === "Awaiting Customer"
+      ? "Awaiting customer approval"
+      : "Pending staff approval",
+
+    request.requesterName
+      ? `Requested by: ${request.requesterName}`
+      : "",
+
+    request.requesterPhone
+      ? `Phone: ${request.requesterPhone}`
+      : "",
+
+    request.requesterEmail
+      ? `Email: ${request.requesterEmail}`
+      : "",
+
+    request.source
+      ? `Source: ${request.source}`
+      : "",
+
+    request.notes,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export function useCalendar() {
@@ -97,68 +199,184 @@ export function useCalendar() {
   } = useAppointments();
 
   const {
+    requests,
+    loading: requestsLoading,
+    error: requestsError,
+    refresh: refreshRequests,
+  } = useAppointmentRequests();
+
+  const {
     stays,
     loading: boardingLoading,
     error: boardingError,
     refresh: refreshBoarding,
   } = useBoarding();
 
-  const [view, setView] = useState<CalendarView>("day");
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [filters, setFilters] =
-    useState<CalendarFilter>(DEFAULT_FILTERS);
+  const [view, setView] =
+    useState<CalendarView>("day");
 
-  const allEvents = useMemo<ScheduleEvent[]>(() => {
+  const [
+    selectedDate,
+    setSelectedDate,
+  ] = useState(new Date());
+
+  const [
+    filters,
+    setFilters,
+  ] = useState<CalendarFilter>(
+    DEFAULT_FILTERS,
+  );
+
+  const allEvents = useMemo<
+    ScheduleEvent[]
+  >(() => {
     const grooming = appointments.map(
-      (appointment): ScheduleEvent => ({
+      (
+        appointment,
+      ): ScheduleEvent => ({
         id: `appointment-${appointment.id}`,
+
         type: "grooming",
-        status: appointmentStatus(appointment.status),
+
+        status: appointmentStatus(
+          appointment.status,
+        ),
+
         title:
           appointment.serviceName ||
           "Grooming appointment",
-        customerId: appointment.customerId,
-        petIds: [appointment.petId],
-        resourceIds: appointment.assignedStaff
-          ? [appointment.assignedStaff]
-          : ["unassigned"],
-        referenceId: appointment.id,
+
+        customerId:
+          appointment.customerId,
+
+        petIds: appointment.petId
+          ? [appointment.petId]
+          : [],
+
+        resourceIds:
+          appointment.assignedStaff
+            ? [appointment.assignedStaff]
+            : ["unassigned"],
+
+        referenceId:
+          appointment.id,
+
         start: dateTime(
           appointment.appointmentDate,
           appointment.startTime,
         ),
+
         end: dateTime(
           appointment.appointmentDate,
           appointment.endTime,
         ),
-        notes: appointment.notes,
+
+        notes:
+          appointment.notes,
       }),
     );
 
+    const appointmentRequests = requests
+      .filter(
+        (request) =>
+          request.status ===
+            "Pending Review" ||
+          request.status ===
+            "Awaiting Customer",
+      )
+      .map(
+        (
+          request,
+        ): ScheduleEvent => ({
+          id: `appointment-request-${request.id}`,
+
+          type: "grooming",
+
+          status:
+            appointmentRequestStatus(
+              request,
+            ),
+
+          title: requestTitle(request),
+
+          customerId:
+            request.customerId ||
+            undefined,
+
+          petIds: request.petId
+            ? [request.petId]
+            : [],
+
+          resourceIds:
+            request.preferredStaff
+              ? [request.preferredStaff]
+              : ["unassigned"],
+
+          referenceId:
+            request.id,
+
+          start: dateTime(
+            request.requestedDate,
+            request.requestedStartTime,
+          ),
+
+          end: dateTime(
+            request.requestedDate,
+            request.requestedEndTime,
+          ),
+
+          notes:
+            requestNotes(request),
+        }),
+      );
+
     const boarding = stays.map(
-      (stay): ScheduleEvent => ({
+      (
+        stay,
+      ): ScheduleEvent => ({
         id: `boarding-${stay.id}`,
+
         type: "boarding",
-        status: boardingStatus(stay.status),
+
+        status: boardingStatus(
+          stay.status,
+        ),
+
         title: "Boarding stay",
-        customerId: stay.customerId,
-        petIds: stay.petId ? [stay.petId] : [],
-        resourceIds: ["boarding"],
-        referenceId: stay.id,
+
+        customerId:
+          stay.customerId,
+
+        petIds: stay.petId
+          ? [stay.petId]
+          : [],
+
+        resourceIds: [
+          "boarding",
+        ],
+
+        referenceId:
+          stay.id,
+
         start: dateTime(
           stay.checkInDate,
           stay.checkInTime,
         ),
+
         end: dateTime(
           stay.checkOutDate,
           stay.checkOutTime,
         ),
+
         notes: [
           stay.kennelName
             ? `Kennel: ${stay.kennelName}`
             : "",
+
           stay.foodInstructions,
+
           stay.medicationInstructions,
+
           stay.emergencyNotes,
         ]
           .filter(Boolean)
@@ -166,21 +384,38 @@ export function useCalendar() {
       }),
     );
 
-    return [...grooming, ...boarding];
-  }, [appointments, stays]);
+    return [
+      ...grooming,
+      ...appointmentRequests,
+      ...boarding,
+    ];
+  }, [
+    appointments,
+    requests,
+    stays,
+  ]);
 
   const events = useMemo(() => {
-    const range = rangeFor(view, selectedDate);
+    const range = rangeFor(
+      view,
+      selectedDate,
+    );
 
     return allEvents
       .filter((event) =>
-        overlaps(event, range.start, range.end),
+        overlaps(
+          event,
+          range.start,
+          range.end,
+        ),
       )
       .filter((event) => {
         const isBoarding =
           event.type === "boarding" ||
-          event.type === "boarding-checkin" ||
-          event.type === "boarding-checkout";
+          event.type ===
+            "boarding-checkin" ||
+          event.type ===
+            "boarding-checkout";
 
         if (
           !filters.showAppointments &&
@@ -189,7 +424,10 @@ export function useCalendar() {
           return false;
         }
 
-        if (!filters.showBoarding && isBoarding) {
+        if (
+          !filters.showBoarding &&
+          isBoarding
+        ) {
           return false;
         }
 
@@ -210,101 +448,208 @@ export function useCalendar() {
         return true;
       })
       .sort(
-        (left, right) =>
-          new Date(left.start).getTime() -
-          new Date(right.start).getTime(),
+        (
+          left,
+          right,
+        ) =>
+          new Date(
+            left.start,
+          ).getTime() -
+          new Date(
+            right.start,
+          ).getTime(),
       );
-  }, [allEvents, filters, selectedDate, view]);
+  }, [
+    allEvents,
+    filters,
+    selectedDate,
+    view,
+  ]);
 
-  const previous = useCallback(() => {
-    setSelectedDate((current) => {
-      const result = new Date(current);
-      if (view === "month") {
-        result.setMonth(result.getMonth() - 1);
-      } else if (view === "week") {
-        result.setDate(result.getDate() - 7);
-      } else {
-        result.setDate(result.getDate() - 1);
-      }
-      return result;
-    });
-  }, [view]);
+  const previous =
+    useCallback(() => {
+      setSelectedDate(
+        (current) => {
+          const result =
+            new Date(current);
 
-  const next = useCallback(() => {
-    setSelectedDate((current) => {
-      const result = new Date(current);
-      if (view === "month") {
-        result.setMonth(result.getMonth() + 1);
-      } else if (view === "week") {
-        result.setDate(result.getDate() + 7);
-      } else {
-        result.setDate(result.getDate() + 1);
-      }
-      return result;
-    });
-  }, [view]);
+          if (view === "month") {
+            result.setMonth(
+              result.getMonth() - 1,
+            );
+          } else if (
+            view === "week"
+          ) {
+            result.setDate(
+              result.getDate() - 7,
+            );
+          } else {
+            result.setDate(
+              result.getDate() - 1,
+            );
+          }
 
-  const today = useCallback(() => {
-    setSelectedDate(new Date());
-  }, []);
+          return result;
+        },
+      );
+    }, [view]);
 
-  const reload = useCallback(async () => {
-    await Promise.all([
-      refreshAppointments(),
-      refreshBoarding(),
+  const next =
+    useCallback(() => {
+      setSelectedDate(
+        (current) => {
+          const result =
+            new Date(current);
+
+          if (view === "month") {
+            result.setMonth(
+              result.getMonth() + 1,
+            );
+          } else if (
+            view === "week"
+          ) {
+            result.setDate(
+              result.getDate() + 7,
+            );
+          } else {
+            result.setDate(
+              result.getDate() + 1,
+            );
+          }
+
+          return result;
+        },
+      );
+    }, [view]);
+
+  const today =
+    useCallback(() => {
+      setSelectedDate(
+        new Date(),
+      );
+    }, []);
+
+  const reload =
+    useCallback(async () => {
+      await Promise.all([
+        refreshAppointments(),
+        refreshRequests(),
+        refreshBoarding(),
+      ]);
+    }, [
+      refreshAppointments,
+      refreshRequests,
+      refreshBoarding,
     ]);
-  }, [refreshAppointments, refreshBoarding]);
 
-  const summary = useMemo(() => {
-    const start = new Date(selectedDate);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
+  const summary =
+    useMemo(() => {
+      const start =
+        new Date(selectedDate);
 
-    const selected = allEvents.filter((event) =>
-      overlaps(event, start, end),
-    );
+      start.setHours(
+        0,
+        0,
+        0,
+        0,
+      );
 
-    return {
-      appointments: selected.filter(
-        (event) => event.type === "grooming",
-      ).length,
-      boarding: selected.filter(
-        (event) => event.type === "boarding",
-      ).length,
-      checkIns: allEvents.filter(
-        (event) =>
-          event.type === "boarding" &&
-          new Date(event.start) >= start &&
-          new Date(event.start) < end,
-      ).length,
-      checkOuts: allEvents.filter(
-        (event) =>
-          event.type === "boarding" &&
-          new Date(event.end) >= start &&
-          new Date(event.end) < end,
-      ).length,
-      completed: selected.filter(
-        (event) => event.status === "completed",
-      ).length,
-    };
-  }, [allEvents, selectedDate]);
+      const end =
+        new Date(start);
+
+      end.setDate(
+        end.getDate() + 1,
+      );
+
+      const selected =
+        allEvents.filter(
+          (event) =>
+            overlaps(
+              event,
+              start,
+              end,
+            ),
+        );
+
+      return {
+        appointments:
+          selected.filter(
+            (event) =>
+              event.type ===
+              "grooming",
+          ).length,
+
+        boarding:
+          selected.filter(
+            (event) =>
+              event.type ===
+              "boarding",
+          ).length,
+
+        checkIns:
+          allEvents.filter(
+            (event) =>
+              event.type ===
+                "boarding" &&
+              new Date(
+                event.start,
+              ) >= start &&
+              new Date(
+                event.start,
+              ) < end,
+          ).length,
+
+        checkOuts:
+          allEvents.filter(
+            (event) =>
+              event.type ===
+                "boarding" &&
+              new Date(
+                event.end,
+              ) >= start &&
+              new Date(
+                event.end,
+              ) < end,
+          ).length,
+
+        completed:
+          selected.filter(
+            (event) =>
+              event.status ===
+              "completed",
+          ).length,
+      };
+    }, [
+      allEvents,
+      selectedDate,
+    ]);
 
   return {
     view,
     setView,
+
     selectedDate,
     setSelectedDate,
+
     filters,
     setFilters,
+
     events,
     summary,
+
     previous,
     next,
     today,
     reload,
+
     loading:
-      appointmentsLoading || boardingLoading,
-    error: appointmentsError || boardingError,
+      appointmentsLoading ||
+      requestsLoading ||
+      boardingLoading,
+
+    error:
+      appointmentsError ||
+      requestsError ||
+      boardingError,
   };
 }

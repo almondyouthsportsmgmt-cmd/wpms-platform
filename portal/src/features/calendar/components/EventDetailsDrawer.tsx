@@ -3,10 +3,12 @@ import {
   Clock,
   ExternalLink,
   Home,
+  Hourglass,
   PawPrint,
   UserRound,
   X,
 } from "lucide-react";
+
 import type { ScheduleEvent } from "../../scheduling/schedulingTypes";
 
 type Props = {
@@ -16,7 +18,17 @@ type Props = {
   onOpenRecord?: (event: ScheduleEvent) => void;
 };
 
+function isAppointmentRequest(event: ScheduleEvent) {
+  return event.id.startsWith("appointment-request-");
+}
+
 function eventLabel(event: ScheduleEvent) {
+  if (isAppointmentRequest(event)) {
+    return event.status === "awaiting-customer"
+      ? "Proposed appointment time"
+      : "Pending appointment request";
+  }
+
   if (event.type === "grooming") {
     return "Grooming appointment";
   }
@@ -30,6 +42,23 @@ function eventLabel(event: ScheduleEvent) {
   }
 
   return event.type.replaceAll("-", " ");
+}
+
+function statusLabel(status: ScheduleEvent["status"]) {
+  switch (status) {
+    case "awaiting-customer":
+      return "Awaiting Customer";
+    case "checked-in":
+      return "Checked In";
+    case "confirmed":
+      return "Confirmed";
+    case "completed":
+      return "Completed";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return "Pending Approval";
+  }
 }
 
 function formatDateTime(value: string) {
@@ -52,6 +81,8 @@ export default function EventDetailsDrawer({
   if (!open || !event) {
     return null;
   }
+
+  const request = isAppointmentRequest(event);
 
   const isBoarding =
     event.type === "boarding" ||
@@ -76,7 +107,12 @@ export default function EventDetailsDrawer({
       />
 
       <section
-        className="calendar-tooltip-modal"
+        className={[
+          "calendar-tooltip-modal",
+          request ? "is-appointment-request" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         role="dialog"
         aria-modal="true"
         aria-labelledby="calendar-tooltip-title"
@@ -86,6 +122,7 @@ export default function EventDetailsDrawer({
             <span className="eyebrow">
               {eventLabel(event)}
             </span>
+
             <h2 id="calendar-tooltip-title">
               {event.title}
             </h2>
@@ -101,9 +138,26 @@ export default function EventDetailsDrawer({
           </button>
         </header>
 
+        {request && (
+          <div className="calendar-request-banner">
+            <Hourglass size={18} />
+
+            <div>
+              <strong>{statusLabel(event.status)}</strong>
+
+              <span>
+                {event.status === "awaiting-customer"
+                  ? "The shop proposed a new time and is waiting for the customer to respond."
+                  : "This request has not been approved as a confirmed appointment."}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="calendar-tooltip-body">
           <div className="calendar-tooltip-detail">
             <Calendar size={17} />
+
             <div>
               <span>Starts</span>
               <strong>{formatDateTime(event.start)}</strong>
@@ -112,6 +166,7 @@ export default function EventDetailsDrawer({
 
           <div className="calendar-tooltip-detail">
             <Clock size={17} />
+
             <div>
               <span>Ends</span>
               <strong>{formatDateTime(event.end)}</strong>
@@ -124,16 +179,23 @@ export default function EventDetailsDrawer({
             ) : (
               <UserRound size={17} />
             )}
+
             <div>
               <span>
-                {isBoarding ? "Boarding resource" : "Assigned staff"}
+                {isBoarding
+                  ? "Boarding resource"
+                  : request
+                    ? "Preferred staff"
+                    : "Assigned staff"}
               </span>
+
               <strong>{resourceName}</strong>
             </div>
           </div>
 
           <div className="calendar-tooltip-detail">
             <PawPrint size={17} />
+
             <div>
               <span>Pets</span>
               <strong>{event.petIds.length}</strong>
@@ -142,9 +204,7 @@ export default function EventDetailsDrawer({
 
           <div className="calendar-tooltip-status">
             <span>Status</span>
-            <strong>
-              {event.status.replaceAll("-", " ")}
-            </strong>
+            <strong>{statusLabel(event.status)}</strong>
           </div>
 
           {event.notes && (
@@ -170,7 +230,8 @@ export default function EventDetailsDrawer({
             onClick={() => onOpenRecord?.(event)}
           >
             <ExternalLink size={16} />
-            Open record
+
+            {request ? "Review Request" : "Open Record"}
           </button>
         </footer>
       </section>

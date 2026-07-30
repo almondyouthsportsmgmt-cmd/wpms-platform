@@ -6,7 +6,8 @@ export type AppointmentStatus =
   | "Ready for Pickup"
   | "Completed"
   | "Cancelled"
-  | "No Show";
+  | "No Show"
+  | "Awaiting Customer";
 
 export type AppointmentType = "Grooming" | "Bath" | "Nails" | "Boarding" | "Other";
 

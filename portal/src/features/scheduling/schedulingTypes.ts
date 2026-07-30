@@ -18,6 +18,7 @@ export type ResourceType =
 
 export type ScheduleStatus =
   | "pending"
+  | "awaiting-customer"
   | "confirmed"
   | "checked-in"
   | "completed"
